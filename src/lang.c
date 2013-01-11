@@ -15,69 +15,118 @@
 #include <ctype.h>
 
 
-int isKeyword(const char *word)
+static int isKeyword(ztoken *token)
 {
-	int i = 0;
+	const ztoken *kw = keywords;
 
-	while(keywords[i])
+	while(kw->id[0])
 	{
-		if(strcmp(word, keywords[i]) == 0)
-			break;
+		if(strcmp(token->id, kw->id) == 0)
+		{
+			token->type = kw->type;
+			return 1;
+		}
 
-		i++;
+		kw++;
 	}
 
-	return keywords[i] == NULL ? -1 : i;
+	return 0;
 }
 
 
-int getNextToken(char **str, token *tok)
+static int getNextToken(const char **str, ztoken *token)
 {
 	const char *first;
 	const char *last;
-	size_t len;
 
 	// skip blank characters
 	while(isblank(*(*str)))
-	{
-		//printf("skiping '%c'\n", *(*str));
 		(*str)++;
-	}
 
 	first = last = *str;
 
-	if(isalnum(*first))
-	{
-		while(isalnum(*last))
-			last++;
-
-		snprintf(tok->info, last - first + 1, "%s", first);
-		//printf("Found word: '%s'\n", tok->info);
-
-		if(isKeyword(tok->info) == -1)
-			tok->type = TOKEN_IDENTIFIER;
-		else
-			tok->type = -1;
-
-		*str = last;
-
-		return 1;
-	}
-	else if(*first == ';')
-	{
-		tok->type = TOKEN_SEMICOLON;
-		tok->info[0] = '\0';
-
-		(*str)++;
-
-		return 1;
-	}
-	else
+	// empty line
+	if(!*first)
 		return 0;
+
+	// weird character
+	if(!isgraph(*first))
+	{
+		fprintf(stderr, "Error: non printable or non ascii character outside string: '%c' (0x%x\n", *first, *first);
+		return 0;
+	}
+	
+	switch(*first)
+	{
+		case ';':
+			token->type = TOKEN_SEMICOLON;
+			token->id[0] = '\0';
+			(*str)++;
+			break;
+
+		case '=':
+			token->type = TOKEN_AFFECT;
+			token->id[0] = '\0';
+			(*str)++;
+			break;
+
+		case '"':
+			last++;
+			first++; // Bad idea? 
+			while(*last != '"' && *last)
+				last++;
+
+			snprintf(token->id, last - first + 1, "%s", first);
+			token->type = TOKEN_STRING;
+			*str = (char *)last + 1;
+			break;
+
+		case '/':
+			// endline comment
+			if(first[1] == '/')
+				return 0;
+		
+		default:
+			if(isalpha(*first))
+			{
+				while(*last == '_' || isalnum(*last))
+					last++;
+
+				snprintf(token->id, last - first + 1, "%s", first);
+
+				if(!isKeyword(token))
+					token->type = TOKEN_IDENTIFIER;
+
+				*str = (char *)last;
+			}
+			else if(isdigit(*first))
+			{
+				while(isdigit(*last))
+					last++;
+
+				snprintf(token->id, last - first + 1, "%s", first);
+
+				if(!isKeyword(token))
+					token->type = TOKEN_CONSTANT;
+
+				*str = (char *)last;
+			}
+		break;
+	}
+	
+	if(first == *str)
+	{
+		(*str)++;
+		token->type = TOKEN_UNKNOWN;
+		token->id[0] = *first;
+		token->id[1] = '\0';
+	}
+
+	return *last != '\0';
 }
 
 
-void checkLine(const char *line, int lineNumber)
+static void checkLine(const char *line, int lineNumber)
 {
 	if(strlen(line) == LINE_MAX)
 	{
@@ -87,7 +136,7 @@ void checkLine(const char *line, int lineNumber)
 }
 
 
-void cleanLine(const char *line)
+static void cleanLine(const char *line)
 {
 	char *endl = strchr(line, '\n');
 
@@ -96,34 +145,104 @@ void cleanLine(const char *line)
 }
 
 
-void parseLine(const char *line, int lineNumber)
+static int parseLine(const char *line, int lineNumber)
 {
-	token tok;
+	ztoken token = {"", TOKEN_UNKNOWN};
 
 	printf("l%3d: '%s':\n", lineNumber, line);
 
-	while(getNextToken(&line, &tok))
+	while(getNextToken(&line, &token))
 	{
-		switch(tok.type)
+		switch(token.type)
 		{
+			// cat include/keywords include/types | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
+			case TOKEN_ALIAS:
+			case TOKEN_AUTO:
+			case TOKEN_BOOL:
+			case TOKEN_BREAK:
+			case TOKEN_CASE:
+			case TOKEN_CLASS:
+			case TOKEN_CONST:
+			case TOKEN_CONTINUE:
+			case TOKEN_CTOR:
+			case TOKEN_DEFAULT:
+			case TOKEN_DELETE:
+			case TOKEN_DO:
+			case TOKEN_DOUBLE:
+			case TOKEN_DTOR:
+			case TOKEN_ELSE:
+			case TOKEN_ENUM:
+			case TOKEN_FLOAT:
+			case TOKEN_FLOAT_16:
+			case TOKEN_FLOAT_32:
+			case TOKEN_FLOAT_64:
+			case TOKEN_FOR:
+			case TOKEN_HALF:
+			case TOKEN_IF:
+			case TOKEN_IMPORT:
+			case TOKEN_IN:
+			case TOKEN_INLINE:
+			case TOKEN_INOUT:
+			case TOKEN_INT:
+			case TOKEN_MATCH:
+			case TOKEN_MODULE:
+			case TOKEN_NEW:
+			case TOKEN_NODEFAULT:
+			case TOKEN_NULL:
+			case TOKEN_OUT:
+			case TOKEN_PARTIAL:
+			case TOKEN_PRIV:
+			case TOKEN_PRIVATE:
+			case TOKEN_PUB:
+			case TOKEN_PUBLIC:
+			case TOKEN_RETURN:
+			case TOKEN_SIZEOF:
+			case TOKEN_STATIC:
+			case TOKEN_SWITCH:
+			case TOKEN_TEMPLATE:
+			case TOKEN_THIS:
+			case TOKEN_TYPEDEF:
+			case TOKEN_TYPEOF:
+			case TOKEN_UBYTE:
+			case TOKEN_UCHAR:
+			case TOKEN_UCHAR_16:
+			case TOKEN_UCHAR_32:
+			case TOKEN_UCHAR_8:
+			case TOKEN_UINT:
+			case TOKEN_UINT_16:
+			case TOKEN_UINT_32:
+			case TOKEN_UINT_64:
+			case TOKEN_UINT_8:
+			case TOKEN_ULONG:
+			case TOKEN_UNION:
+			case TOKEN_USHORT:
+			case TOKEN_VOID:
+			case TOKEN_WHILE:
+				printf("Found keyword: '%s'\n", token.id); break;
 			case TOKEN_IDENTIFIER:
-				printf("\tFound identifier '%s'\n", tok.info); break;
-			case TOKEN_TYPE:
-				printf("\tFound type '%s'\n", tok.info); break;
+				printf("Found identifier '%s'\n", token.id); break;
 			case TOKEN_SEMICOLON:
-				printf("\tFound semicolon\n"); break;
-			default:
-				printf("\tFound unknown token(%d) info: '%s'\n", tok.type, tok.info); break;
+				printf("Found semicolon\n"); break;
+			case TOKEN_AFFECT:
+				printf("Found affectation\n"); break;
+			case TOKEN_STRING:
+				printf("Found string: '%s'\n", token.id); break;
+			case TOKEN_CONSTANT:
+				printf("Found constant: '%s'\n", token.id); break;
+			case TOKEN_UNKNOWN: default:
+				printf("Found unknown token(%d) id: '%s'\n", token.type, token.id);
+				return -1;
 		}
 	}
+
+	return 0;
 }
 
 
 int main(int argc, char **argv)
 {
 	char line[LINE_MAX + 1];
-	int lineNumber = 1;
-	FILE *f;
+	int status = EXIT_SUCCESS;
 	int i;
 
 	// check args
@@ -137,6 +256,8 @@ int main(int argc, char **argv)
 	for(i = 1; i < argc; i++)
 	{
 		char *fileName = argv[i];
+		int lineNumber = 1;
+		FILE *f;
 
 		// opening source file
 		f = fopen(fileName, "r");
@@ -153,14 +274,23 @@ int main(int argc, char **argv)
 		{
 			checkLine(line, lineNumber);
 			cleanLine(line);
-			parseLine(line, lineNumber);
+			
+			if(parseLine(line, lineNumber) != 0)
+			{
+				status = EXIT_FAILURE;
+				break;
+			}
 
 			lineNumber++;
 		}
 
-		printf("##### Parsing of file '%s' completed #####\n\n", fileName);
+		if(status == EXIT_SUCCESS)
+			printf("##### Parsing of file '%s' completed #####\n\n", fileName);
+		else
+			printf("##### Parsing of file '%s' Failed #####\n\n", fileName);
+
 		fclose(f);
 	}
 
-	return EXIT_SUCCESS;
+	return status;
 }

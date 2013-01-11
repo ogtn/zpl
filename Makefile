@@ -35,18 +35,19 @@ INC=include/
 all: bin/lang
 
 bin/lang: src/lang.c include/lang.h
-	$(CC) $(CFLAGS) -o bin/lang src/lang.c -I$(INC)
+	$(CC) $(CFLAGS) -o bin/lang src/lang.c -I$(INC) && echo "Compiling lang: \033[1;32mOK\033[0m"
 
-#wtf doesn't it work?
-keywords:
-	cat include/keywords | sed 's|^[_[:alnum:]]*$|{"&", TOKEN_\U&},|'
-	cat include/keywords | sed 's|^[_[:alnum:]]*$|TOKEN_\U&,|'
+test: bin/lang
+	@for f in test/*.lang; \
+	do \
+	echo -n "Testing `basename $$f`: "; \
+		if ./bin/lang $$f > /dev/null; \
+		then echo "\033[1;32mOK\033[0m"; \
+		else echo "\033[1;31mKO\033[0m"; \
+		fi; \
+	done
 
 clean:
 	@rm -rf bin/*
 
-.PHONY: all clean
-
-# @echo "\033[1;32mThis text is green\033[0m"
-# @echo "\033[1;31mThat one is red\033[0m"
-# interesting for Visual Studio's compiler compatibiliy: -Wdeclaration-after-statement -Werror=deqwqclaration-after-statement
+.PHONY: all clean test
