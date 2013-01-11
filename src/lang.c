@@ -15,7 +15,7 @@
 #include <ctype.h>
 
 
-static int isKeyword(ztoken *token)
+static void checkKeyword(ztoken *token)
 {
 	const ztoken *kw = keywords;
 
@@ -24,13 +24,118 @@ static int isKeyword(ztoken *token)
 		if(strcmp(token->id, kw->id) == 0)
 		{
 			token->type = kw->type;
-			return 1;
+			return;
 		}
 
 		kw++;
 	}
 
-	return 0;
+	token->type = TOKEN_IDENTIFIER;
+}
+
+// sed "s|\(.\) \([_[:alpha:]]*\)|int tokenize_\2(const char *first, ztoken *token){return 1;}|" include/special_chars
+int func_eq(const char *first, const char *last, ztoken *token)
+{
+	int res = 1;
+
+	if(first[1] == '=')
+	{
+		token->type = TOKEN_COMPARE;
+		res++; 
+	}
+	else
+		token->type = TOKEN_ASSIGN;
+
+	token->id[0] = '\0';
+
+	return res;
+}
+
+int tokenize_eq(const char *first, ztoken *token)
+{
+	token->type = TOKEN_ASSIGN;
+	token->id[0] = '\0';
+
+	return 1;
+}
+
+int tokenize_plus(const char *first, ztoken *token){return 1;}
+int tokenize_minus(const char *first, ztoken *token){return 1;}
+
+int tokenize_div(const char *first, ztoken *token)
+{
+	if(first[1] == '/')
+		return -1;
+	else
+		token->type = TOKEN_DIV;
+		token->id[0] = '\0';
+	return 1;
+}
+
+int tokenize_mult(const char *first, ztoken *token){return 1;}
+int tokenize_and(const char *first, ztoken *token){return 1;}
+int tokenize_or(const char *first, ztoken *token){return 1;}
+int tokenize_xor(const char *first, ztoken *token){return 1;}
+int tokenize_inf(const char *first, ztoken *token){return 1;}
+int tokenize_sup(const char *first, ztoken *token){return 1;}
+int tokenize_mod(const char *first, ztoken *token){return 1;}
+int tokenize_dot(const char *first, ztoken *token){return 1;}
+int tokenize_comma(const char *first, ztoken *token){return 1;}
+
+int tokenize_semicolon(const char *first, ztoken *token)
+{
+	token->type = TOKEN_SEMICOLON;
+	token->id[0] = '\0';
+
+	return 1;
+}
+
+int tokenize_colon(const char *first, ztoken *token){return 1;}
+int tokenize_tilde(const char *first, ztoken *token){return 1;}
+int tokenize_not(const char *first, ztoken *token){return 1;}
+int tokenize_paren_open(const char *first, ztoken *token){return 1;}
+int tokenize_paren_close(const char *first, ztoken *token){return 1;}
+int tokenize_curl_open(const char *first, ztoken *token){return 1;}
+int tokenize_curl_close(const char *first, ztoken *token){return 1;}
+int tokenize_bracket_open(const char *first, ztoken *token){return 1;}
+int tokenize_bracket_close(const char *first, ztoken *token){return 1;}
+int tokenize_at(const char *first, ztoken *token){return 1;}
+int tokenize_dollar(const char *first, ztoken *token){return 1;}
+
+int tokenize_dbl_quote(const char *first, ztoken *token)
+{
+	size_t length;
+	const char *last = first;
+
+	do
+		last++;
+	while(*last != '"' && *last);
+
+	length = last - first;
+	snprintf(token->id, length + 1, "%s", first);
+	token->type = TOKEN_STRING;
+
+	return length;
+}
+
+int tokenize_quote(const char *first, ztoken *token){return 1;}
+int tokenize_sharp(const char *first, ztoken *token){return 1;}
+int tokenize_escape(const char *first, ztoken *token){return 1;}
+int tokenize_back_quote(const char *first, ztoken *token){return 1;}
+
+int tokenize_literal(const char *first, ztoken *token)
+{
+	size_t length;
+	const char *last = first;
+
+	while(isdigit(*last))
+		last++;
+
+	length = last - first;
+	snprintf(token->id, length + 1, "%s", first);
+	token->type = TOKEN_CONSTANT;
+
+	return length;
 }
 
 
@@ -38,6 +143,7 @@ static int getNextToken(const char **str, ztoken *token)
 {
 	const char *first;
 	const char *last;
+	int res = 0;
 
 	// skip blank characters
 	while(isblank(*(*str)))
@@ -53,76 +159,76 @@ static int getNextToken(const char **str, ztoken *token)
 	if(!isgraph(*first))
 	{
 		fprintf(stderr, "Error: non printable or non ascii character outside string: '%c' (0x%x\n", *first, *first);
-		return 0;
+		(*str)++;
+
+		return 1;
 	}
+
+	// default value
+	// TODO: remove this when all possible characters will be taken care of in the switch...
+	token->type = TOKEN_UNKNOWN;
+	token->id[0] = *first;
+	token->id[1] = '\0';
 	
 	switch(*first)
 	{
-		case ';':
-			token->type = TOKEN_SEMICOLON;
-			token->id[0] = '\0';
-			(*str)++;
-			break;
-
-		case '=':
-			token->type = TOKEN_AFFECT;
-			token->id[0] = '\0';
-			(*str)++;
-			break;
-
-		case '"':
-			last++;
-			first++; // Bad idea? 
-			while(*last != '"' && *last)
-				last++;
-
-			snprintf(token->id, last - first + 1, "%s", first);
-			token->type = TOKEN_STRING;
-			*str = (char *)last + 1;
-			break;
-
-		case '/':
-			// endline comment
-			if(first[1] == '/')
-				return 0;
-		
+		// sed "s|\(.\) \([_[:alpha:]]*\)|case '\1': out = tokenize_\2(first, token); break;|" include/special_chars
+		case '=': res = tokenize_eq(first, token); break;
+		case '+': res = tokenize_plus(first, token); break;
+		case '-': res = tokenize_minus(first, token); break;
+		case '/': res = tokenize_div(first, token); break;
+		case '*': res = tokenize_mult(first, token); break;
+		case '&': res = tokenize_and(first, token); break;
+		case '|': res = tokenize_or(first, token); break;
+		case '^': res = tokenize_xor(first, token); break;
+		case '<': res = tokenize_inf(first, token); break;
+		case '>': res = tokenize_sup(first, token); break;
+		case '%': res = tokenize_mod(first, token); break;
+		case '.': res = tokenize_dot(first, token); break;
+		case ',': res = tokenize_comma(first, token); break;
+		case ';': res = tokenize_semicolon(first, token); break;
+		case ':': res = tokenize_colon(first, token); break;
+		case '~': res = tokenize_tilde(first, token); break;
+		case '!': res = tokenize_not(first, token); break;
+		case '(': res = tokenize_paren_open(first, token); break;
+		case ')': res = tokenize_paren_close(first, token); break;
+		case '{': res = tokenize_curl_open(first, token); break;
+		case '}': res = tokenize_curl_close(first, token); break;
+		case '[': res = tokenize_bracket_open(first, token); break;
+		case ']': res = tokenize_bracket_close(first, token); break;
+		case '@': res = tokenize_at(first, token); break;
+		case '$': res = tokenize_dollar(first, token); break;
+		case '"': res = tokenize_dbl_quote(first, token); break;
+		case '\'': res = tokenize_quote(first, token); break;
+		case '#': res = tokenize_sharp(first, token); break;
+		case '\\': res = tokenize_escape(first, token); break;
+		case '`': res = tokenize_back_quote(first, token); break;
+		case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+			res = tokenize_literal(first, token); break;
 		default:
-			if(isalpha(*first))
+			if(*first == '_' || isalpha(*first))
 			{
 				while(*last == '_' || isalnum(*last))
 					last++;
 
 				snprintf(token->id, last - first + 1, "%s", first);
-
-				if(!isKeyword(token))
-					token->type = TOKEN_IDENTIFIER;
-
-				*str = (char *)last;
-			}
-			else if(isdigit(*first))
-			{
-				while(isdigit(*last))
-					last++;
-
-				snprintf(token->id, last - first + 1, "%s", first);
-
-				if(!isKeyword(token))
-					token->type = TOKEN_CONSTANT;
-
-				*str = (char *)last;
+				checkKeyword(token);
+				res = last - first;
 			}
 		break;
 	}
 	
-	if(first == *str)
-	{
-		(*str)++;
-		token->type = TOKEN_UNKNOWN;
-		token->id[0] = *first;
-		token->id[1] = '\0';
-	}
+	// skip the rest of the line
+	if(res < 0)
+		return 0;
+	// see next character...
+	else if(res == 0)
+		(*str++);
+	// see next token
+	else
+		(*str) += res;
 
-	return *last != '\0';
+	return 1;
 }
 
 
@@ -223,8 +329,8 @@ static int parseLine(const char *line, int lineNumber)
 				printf("Found identifier '%s'\n", token.id); break;
 			case TOKEN_SEMICOLON:
 				printf("Found semicolon\n"); break;
-			case TOKEN_AFFECT:
-				printf("Found affectation\n"); break;
+			case TOKEN_ASSIGN:
+				printf("Found assignment\n"); break;
 			case TOKEN_STRING:
 				printf("Found string: '%s'\n", token.id); break;
 			case TOKEN_CONSTANT:
