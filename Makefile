@@ -27,7 +27,7 @@ CFLAGS=-Wall -Wextra -fno-common -Wdeclaration-after-statement \
 
 # easy version
 #CFLAGS=-Wall -Wextra
-
+	
 LDFLAGS=
 
 INC=include/
@@ -37,8 +37,8 @@ all: bin/lang
 bin/lang: src/lang.c include/lang.h
 	$(CC) $(CFLAGS) -o bin/lang src/lang.c -I$(INC) && echo "Compiling lang: \033[1;32mOK\033[0m"
 
-test: bin/lang
-	@for f in test/*.lang; \
+tests: bin/lang
+	@for f in tests/*.lang; \
 	do \
 	echo -n "Testing `basename $$f`: "; \
 		if ./bin/lang $$f > /dev/null; \
@@ -50,4 +50,4 @@ test: bin/lang
 clean:
 	@rm -rf bin/*
 
-.PHONY: all clean test
+.PHONY: all clean tests

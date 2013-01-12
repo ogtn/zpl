@@ -34,7 +34,7 @@ static void checkKeyword(ztoken *token)
 }
 
 // sed "s|\(.\) \([_[:alpha:]]*\)|int tokenize_\2(const char *first, ztoken *token){return 1;}|" include/special_chars
-int func_eq(const char *first, const char *last, ztoken *token)
+int tokenize_eq(const char *first, ztoken *token)
 {
 	int res = 1;
 
@@ -46,20 +46,19 @@ int func_eq(const char *first, const char *last, ztoken *token)
 	else
 		token->type = TOKEN_ASSIGN;
 
-	token->id[0] = '\0';
-
-	return res;
-}
-
-int tokenize_eq(const char *first, ztoken *token)
-{
-	token->type = TOKEN_ASSIGN;
-	token->id[0] = '\0';
+	token->id[res] = '\0';
 
 	return 1;
 }
 
-int tokenize_plus(const char *first, ztoken *token){return 1;}
+
+int tokenize_plus(const char *first, ztoken *token)
+{
+	token->type = TOKEN_ADD;
+
+	return 1;
+}
+
 int tokenize_minus(const char *first, ztoken *token){return 1;}
 
 int tokenize_div(const char *first, ztoken *token)
@@ -105,20 +104,59 @@ int tokenize_dollar(const char *first, ztoken *token){return 1;}
 int tokenize_dbl_quote(const char *first, ztoken *token)
 {
 	size_t length;
-	const char *last = first;
+	const char *last = ++first;
 
-	do
+	while(*last != '"' && *last)
 		last++;
-	while(*last != '"' && *last);
 
-	length = last - first;
-	snprintf(token->id, length + 1, "%s", first);
+	if(!*last)
+	{
+		fprintf(stderr, "Ill formed string: encountered new line before matching \"\n");
+		
+		return -1;
+	}
+
+	length = last - first + 1;
+
+	if(length >= IDENTIFIER_MAX)
+	{
+		fprintf(stderr, "Ill formed string: longer than %d characters\n", IDENTIFIER_MAX);
+		
+		return length;
+	}
+
+	snprintf(token->id, length, "%s", first);
 	token->type = TOKEN_STRING;
 
-	return length;
+	return length + 1;
 }
 
-int tokenize_quote(const char *first, ztoken *token){return 1;}
+int tokenize_quote(const char *first, ztoken *token)
+{
+	if(!isalnum(first[1]))
+	{
+		fprintf(stderr, "Illegal character after ', only alnums are accepted: '%c'\n", first[1]);
+
+		return 2;
+	}
+
+	if(first[2] != '\'')
+	{
+		fprintf(stderr, "Missing matching '\n");
+		
+		return 2;
+	}
+
+	// OK: single valid character betwin '
+	token->type = TOKEN_CONSTANT;
+	token->id[0] = first[0];
+	token->id[1] = first[1];
+	token->id[2] = first[2];
+	token->id[3] = '\0';
+
+	return 3;
+}
+
 int tokenize_sharp(const char *first, ztoken *token){return 1;}
 int tokenize_escape(const char *first, ztoken *token){return 1;}
 int tokenize_back_quote(const char *first, ztoken *token){return 1;}
@@ -255,16 +293,15 @@ static int parseLine(const char *line, int lineNumber)
 {
 	ztoken token = {"", TOKEN_UNKNOWN};
 
-	printf("l%3d: '%s':\n", lineNumber, line);
+	printf("l%3d: %s\n", lineNumber, line);
 
 	while(getNextToken(&line, &token))
 	{
 		switch(token.type)
 		{
-			// cat include/keywords include/types | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
+			// cat include/keywords | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
 			case TOKEN_ALIAS:
 			case TOKEN_AUTO:
-			case TOKEN_BOOL:
 			case TOKEN_BREAK:
 			case TOKEN_CASE:
 			case TOKEN_CLASS:
@@ -274,22 +311,15 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_DEFAULT:
 			case TOKEN_DELETE:
 			case TOKEN_DO:
-			case TOKEN_DOUBLE:
 			case TOKEN_DTOR:
 			case TOKEN_ELSE:
 			case TOKEN_ENUM:
-			case TOKEN_FLOAT:
-			case TOKEN_FLOAT_16:
-			case TOKEN_FLOAT_32:
-			case TOKEN_FLOAT_64:
 			case TOKEN_FOR:
-			case TOKEN_HALF:
 			case TOKEN_IF:
 			case TOKEN_IMPORT:
 			case TOKEN_IN:
 			case TOKEN_INLINE:
 			case TOKEN_INOUT:
-			case TOKEN_INT:
 			case TOKEN_MATCH:
 			case TOKEN_MODULE:
 			case TOKEN_NEW:
@@ -309,6 +339,29 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_THIS:
 			case TOKEN_TYPEDEF:
 			case TOKEN_TYPEOF:
+			case TOKEN_UNION:
+			case TOKEN_WHILE:
+				printf("keyword %s\n", token.id); break;
+			// cat include/types | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
+			case TOKEN_BOOL:
+			case TOKEN_BYTE:
+			case TOKEN_CHAR:
+			case TOKEN_CHAR_16:
+			case TOKEN_CHAR_32:
+			case TOKEN_CHAR_8:
+			case TOKEN_DOUBLE:
+			case TOKEN_FLOAT:
+			case TOKEN_FLOAT_16:
+			case TOKEN_FLOAT_32:
+			case TOKEN_FLOAT_64:
+			case TOKEN_HALF:
+			case TOKEN_INT:
+			case TOKEN_INT_16:
+			case TOKEN_INT_32:
+			case TOKEN_INT_64:
+			case TOKEN_INT_8:
+			case TOKEN_LONG:
+			case TOKEN_SHORT:
 			case TOKEN_UBYTE:
 			case TOKEN_UCHAR:
 			case TOKEN_UCHAR_16:
@@ -320,21 +373,22 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_UINT_64:
 			case TOKEN_UINT_8:
 			case TOKEN_ULONG:
-			case TOKEN_UNION:
 			case TOKEN_USHORT:
 			case TOKEN_VOID:
-			case TOKEN_WHILE:
-				printf("Found keyword: '%s'\n", token.id); break;
-			case TOKEN_IDENTIFIER:
-				printf("Found identifier '%s'\n", token.id); break;
-			case TOKEN_SEMICOLON:
-				printf("Found semicolon\n"); break;
+				printf("native type %s\n", token.id); break;
+			case TOKEN_COMPARE:
+			case TOKEN_DIV:
+			case TOKEN_ADD:
 			case TOKEN_ASSIGN:
-				printf("Found assignment\n"); break;
+				printf("operator %s\n", token.id); break;
+			case TOKEN_IDENTIFIER:
+				printf("identifier '%s'\n", token.id); break;
+			case TOKEN_SEMICOLON:
+				printf("semicolon\n"); break;
 			case TOKEN_STRING:
-				printf("Found string: '%s'\n", token.id); break;
+				printf("string '%s'\n", token.id); break;
 			case TOKEN_CONSTANT:
-				printf("Found constant: '%s'\n", token.id); break;
+				printf("constant '%s'\n", token.id); break;
 			case TOKEN_UNKNOWN: default:
 				printf("Found unknown token(%d) id: '%s'\n", token.type, token.id);
 				return -1;

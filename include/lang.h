@@ -21,10 +21,10 @@
 
 typedef enum tokenType
 {
-	// cat include/keywords include/types | sort | sed 's|^[_[:alnum:]]*$|TOKEN_\U&,|'
+	// keywords
+	// cat include/keywords | sort | sed 's|^[_[:alnum:]]*$|TOKEN_\U&,|'
 	TOKEN_ALIAS,
 	TOKEN_AUTO,
-	TOKEN_BOOL,
 	TOKEN_BREAK,
 	TOKEN_CASE,
 	TOKEN_CLASS,
@@ -34,22 +34,15 @@ typedef enum tokenType
 	TOKEN_DEFAULT,
 	TOKEN_DELETE,
 	TOKEN_DO,
-	TOKEN_DOUBLE,
 	TOKEN_DTOR,
 	TOKEN_ELSE,
 	TOKEN_ENUM,
-	TOKEN_FLOAT,
-	TOKEN_FLOAT_16,
-	TOKEN_FLOAT_32,
-	TOKEN_FLOAT_64,
 	TOKEN_FOR,
-	TOKEN_HALF,
 	TOKEN_IF,
 	TOKEN_IMPORT,
 	TOKEN_IN,
 	TOKEN_INLINE,
 	TOKEN_INOUT,
-	TOKEN_INT,
 	TOKEN_MATCH,
 	TOKEN_MODULE,
 	TOKEN_NEW,
@@ -69,6 +62,30 @@ typedef enum tokenType
 	TOKEN_THIS,
 	TOKEN_TYPEDEF,
 	TOKEN_TYPEOF,
+	TOKEN_UNION,
+	TOKEN_WHILE,
+
+	// native types
+	// cat include/types | sort | sed 's|^[_[:alnum:]]*$|TOKEN_\U&,|'
+	TOKEN_BOOL,
+	TOKEN_BYTE,
+	TOKEN_CHAR,
+	TOKEN_CHAR_16,
+	TOKEN_CHAR_32,
+	TOKEN_CHAR_8,
+	TOKEN_DOUBLE,
+	TOKEN_FLOAT,
+	TOKEN_FLOAT_16,
+	TOKEN_FLOAT_32,
+	TOKEN_FLOAT_64,
+	TOKEN_HALF,
+	TOKEN_INT,
+	TOKEN_INT_16,
+	TOKEN_INT_32,
+	TOKEN_INT_64,
+	TOKEN_INT_8,
+	TOKEN_LONG,
+	TOKEN_SHORT,
 	TOKEN_UBYTE,
 	TOKEN_UCHAR,
 	TOKEN_UCHAR_16,
@@ -80,37 +97,27 @@ typedef enum tokenType
 	TOKEN_UINT_64,
 	TOKEN_UINT_8,
 	TOKEN_ULONG,
-	TOKEN_UNION,
 	TOKEN_USHORT,
 	TOKEN_VOID,
-	TOKEN_WHILE,
 
-	// sort include/special_chars | sed 's|\([_a-z]*\) \(.*\)|TOKEN_\U\1,|'
-/*	TOKEN_AFFECT,
-	TOKEN_BEGIN_COMMENT,
+	// operators	
 	TOKEN_COMPARE,
 	TOKEN_DIV,
-	TOKEN_DOT,
-	TOKEN_ELLIPSE,
-	TOKEN_ENDLINE_COMMENT,
-*/
-
-	// do not remove
-	TOKEN_SEMICOLON,
-	TOKEN_IDENTIFIER,
+	TOKEN_ADD,
 	TOKEN_ASSIGN,
-	TOKEN_DIV,
+
+	// other special cases
+	TOKEN_IDENTIFIER,
+	TOKEN_SEMICOLON,
 	TOKEN_STRING,
 	TOKEN_CONSTANT,
-	TOKEN_COMPARE,
-
 	TOKEN_UNKNOWN
 } tokenType;
 
 
 typedef struct ztoken
 {
-	char id[IDENTIFIER_MAX];
+	char id[IDENTIFIER_MAX + 1];
 	tokenType type;
 } ztoken;
 
@@ -163,14 +170,24 @@ const ztoken keywords[] =
 	// Native types
 	// sort include/types | sed 's|^[_[:alnum:]]*$|{"&", TOKEN_\U&},|'
 	{"bool", TOKEN_BOOL},
+	{"byte", TOKEN_BYTE},
+	{"char", TOKEN_CHAR},
+	{"char_16", TOKEN_CHAR_16},
+	{"char_32", TOKEN_CHAR_32},
+	{"char_8", TOKEN_CHAR_8},
 	{"double", TOKEN_DOUBLE},
-	{"float", TOKEN_FLOAT},
 	{"float", TOKEN_FLOAT},
 	{"float_16", TOKEN_FLOAT_16},
 	{"float_32", TOKEN_FLOAT_32},
 	{"float_64", TOKEN_FLOAT_64},
 	{"half", TOKEN_HALF},
 	{"int", TOKEN_INT},
+	{"int_16", TOKEN_INT_16},
+	{"int_32", TOKEN_INT_32},
+	{"int_64", TOKEN_INT_64},
+	{"int_8", TOKEN_INT_8},
+	{"long", TOKEN_LONG},
+	{"short", TOKEN_SHORT},
 	{"ubyte", TOKEN_UBYTE},
 	{"uchar", TOKEN_UCHAR},
 	{"uchar_16", TOKEN_UCHAR_16},
