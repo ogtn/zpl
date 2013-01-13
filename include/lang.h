@@ -15,7 +15,7 @@
 #include <stdlib.h>
 
 
-#define LINE_MAX			512
+#define LINE_MAX			1024
 #define IDENTIFIER_MAX		64
 
 
@@ -65,145 +65,187 @@ typedef enum tokenType
 	TOKEN_UNION,
 	TOKEN_WHILE,
 
-	// native types
-	// cat include/types | sort | sed 's|^[_[:alnum:]]*$|TOKEN_\U&,|'
-	TOKEN_BOOL,
-	TOKEN_BYTE,
-	TOKEN_CHAR,
-	TOKEN_CHAR_16,
-	TOKEN_CHAR_32,
-	TOKEN_CHAR_8,
-	TOKEN_DOUBLE,
-	TOKEN_FLOAT,
-	TOKEN_FLOAT_16,
-	TOKEN_FLOAT_32,
-	TOKEN_FLOAT_64,
-	TOKEN_HALF,
-	TOKEN_INT,
-	TOKEN_INT_16,
-	TOKEN_INT_32,
-	TOKEN_INT_64,
-	TOKEN_INT_8,
-	TOKEN_LONG,
-	TOKEN_SHORT,
-	TOKEN_UBYTE,
-	TOKEN_UCHAR,
-	TOKEN_UCHAR_16,
-	TOKEN_UCHAR_32,
-	TOKEN_UCHAR_8,
-	TOKEN_UINT,
-	TOKEN_UINT_16,
-	TOKEN_UINT_32,
-	TOKEN_UINT_64,
-	TOKEN_UINT_8,
-	TOKEN_ULONG,
-	TOKEN_USHORT,
-	TOKEN_VOID,
-
 	// operators	
 	TOKEN_COMPARE,
 	TOKEN_DIV,
 	TOKEN_ADD,
 	TOKEN_ASSIGN,
+	TOKEN_MINUS,
+	TOKEN_MULT,
+	TOKEN_AND,
+	TOKEN_BIT_AND,
+	TOKEN_OR,
+	TOKEN_BIT_OR,
+	TOKEN_XOR,
+	TOKEN_DOT,
+	TOKEN_COMMA,
 
 	// other special cases
+	TOKEN_TYPE,
 	TOKEN_IDENTIFIER,
 	TOKEN_SEMICOLON,
 	TOKEN_STRING,
-	TOKEN_CONSTANT,
+	TOKEN_LITERAL_CHAR,
+	TOKEN_LITERAL_INT,
+	TOKEN_COLON,
+	TOKEN_INF,
+	TOKEN_SUP,
+	TOKEN_MOD,
+	TOKEN_TILDE,
+	TOKEN_NOT,
+	TOKEN_OPEN_PAREN,
+	TOKEN_CLOSE_PAREN,
+	TOKEN_OPEN_BLOCK,
+	TOKEN_CLOSE_BLOCK,
+	TOKEN_OPEN_BRACKET,
+	TOKEN_CLOSE_BRACKET,
+	TOKEN_AT,
+	TOKEN_DOLLAR,
+	TOKEN_SHARP,
+	TOKEN_ESCAPE,
+	TOKEN_BACK_QUOTE,
+
 	TOKEN_UNKNOWN
 } tokenType;
 
 
+typedef enum ztype
+{
+	// cat include/types | sort | sed 's|^[_[:alnum:]]*$|TYPE_\U&,|'
+	TYPE_BOOL,
+	TYPE_BYTE,
+	TYPE_CHAR,
+	TYPE_CHAR_16,
+	TYPE_CHAR_32,
+	TYPE_CHAR_8,
+	TYPE_DOUBLE,
+	TYPE_FLOAT,
+	TYPE_FLOAT_16,
+	TYPE_FLOAT_32,
+	TYPE_FLOAT_64,
+	TYPE_HALF,
+	TYPE_INT,
+	TYPE_INT_16,
+	TYPE_INT_32,
+	TYPE_INT_64,
+	TYPE_INT_8,
+	TYPE_LONG,
+	TYPE_SHORT,
+	TYPE_UBYTE,
+	TYPE_UCHAR,
+	TYPE_UCHAR_16,
+	TYPE_UCHAR_32,
+	TYPE_UCHAR_8,
+	TYPE_UINT,
+	TYPE_UINT_16,
+	TYPE_UINT_32,
+	TYPE_UINT_64,
+	TYPE_UINT_8,
+	TYPE_ULONG,
+	TYPE_USHORT,
+	TYPE_VOID
+} ztype;
+
+
 typedef struct ztoken
 {
-	char id[IDENTIFIER_MAX + 1];
 	tokenType type;
+
+	union
+	{
+		char char_val;
+		int int_val;
+		float float_val;
+		char *str_val;
+		ztype type;
+	} data;
 } ztoken;
 
 
-const ztoken keywords[] =
+const char *all_keywords[] =
 {
-	// sort include/keywords | sed 's|^[_[:alnum:]]*$|{"&", TOKEN_\U&},|'
-	{"alias", TOKEN_ALIAS},
-	{"auto", TOKEN_AUTO},
-	{"break", TOKEN_BREAK},
-	{"case", TOKEN_CASE},
-	{"class", TOKEN_CLASS},
-	{"const", TOKEN_CONST},
-	{"continue", TOKEN_CONTINUE},
-	{"ctor", TOKEN_CTOR},
-	{"default", TOKEN_DEFAULT},
-	{"delete", TOKEN_DELETE},
-	{"do", TOKEN_DO},
-	{"dtor", TOKEN_DTOR},
-	{"else", TOKEN_ELSE},
-	{"enum", TOKEN_ENUM},
-	{"for", TOKEN_FOR},
-	{"if", TOKEN_IF},
-	{"import", TOKEN_IMPORT},
-	{"in", TOKEN_IN},
-	{"inline", TOKEN_INLINE},
-	{"inout", TOKEN_INOUT},
-	{"match", TOKEN_MATCH},
-	{"module", TOKEN_MODULE},
-	{"new", TOKEN_NEW},
-	{"nodefault", TOKEN_NODEFAULT},
-	{"null", TOKEN_NULL},
-	{"out", TOKEN_OUT},
-	{"partial", TOKEN_PARTIAL},
-	{"priv", TOKEN_PRIV},
-	{"private", TOKEN_PRIVATE},
-	{"pub", TOKEN_PUB},
-	{"public", TOKEN_PUBLIC},
-	{"return", TOKEN_RETURN},
-	{"sizeof", TOKEN_SIZEOF},
-	{"static", TOKEN_STATIC},
-	{"switch", TOKEN_SWITCH},
-	{"template", TOKEN_TEMPLATE},
-	{"this", TOKEN_THIS},
-	{"typedef", TOKEN_TYPEDEF},
-	{"typeof", TOKEN_TYPEOF},
-	{"union", TOKEN_UNION},
-	{"while", TOKEN_WHILE},
+	// sort include/keywords | sed 's|^[_[:alnum:]]*$|"&",|'
+	"alias",
+	"auto",
+	"break",
+	"case",
+	"class",
+	"const",
+	"continue",
+	"ctor",
+	"default",
+	"delete",
+	"do",
+	"dtor",
+	"else",
+	"enum",
+	"for",
+	"if",
+	"import",
+	"in",
+	"inline",
+	"inout",
+	"match",
+	"module",
+	"new",
+	"nodefault",
+	"null",
+	"out",
+	"partial",
+	"priv",
+	"private",
+	"pub",
+	"public",
+	"return",
+	"sizeof",
+	"static",
+	"switch",
+	"template",
+	"this",
+	"typedef",
+	"typeof",
+	"union",
+	"while",
+	NULL
+};
 
-	// Native types
-	// sort include/types | sed 's|^[_[:alnum:]]*$|{"&", TOKEN_\U&},|'
-	{"bool", TOKEN_BOOL},
-	{"byte", TOKEN_BYTE},
-	{"char", TOKEN_CHAR},
-	{"char_16", TOKEN_CHAR_16},
-	{"char_32", TOKEN_CHAR_32},
-	{"char_8", TOKEN_CHAR_8},
-	{"double", TOKEN_DOUBLE},
-	{"float", TOKEN_FLOAT},
-	{"float_16", TOKEN_FLOAT_16},
-	{"float_32", TOKEN_FLOAT_32},
-	{"float_64", TOKEN_FLOAT_64},
-	{"half", TOKEN_HALF},
-	{"int", TOKEN_INT},
-	{"int_16", TOKEN_INT_16},
-	{"int_32", TOKEN_INT_32},
-	{"int_64", TOKEN_INT_64},
-	{"int_8", TOKEN_INT_8},
-	{"long", TOKEN_LONG},
-	{"short", TOKEN_SHORT},
-	{"ubyte", TOKEN_UBYTE},
-	{"uchar", TOKEN_UCHAR},
-	{"uchar_16", TOKEN_UCHAR_16},
-	{"uchar_32", TOKEN_UCHAR_32},
-	{"uchar_8", TOKEN_UCHAR_8},
-	{"uint", TOKEN_UINT},
-	{"uint_16", TOKEN_UINT_16},
-	{"uint_32", TOKEN_UINT_32},
-	{"uint_64", TOKEN_UINT_64},
-	{"uint_8", TOKEN_UINT_8},
-	{"ulong", TOKEN_ULONG},
-	{"ushort", TOKEN_USHORT},
-	{"void", TOKEN_VOID},
 
-	// do not remove
-	{"", TOKEN_UNKNOWN}
+const char *all_types[] =
+{
+	// sort include/types | sed 's|^[_[:alnum:]]*$|"&",|'
+	"bool",
+	"byte",
+	"char",
+	"char_16",
+	"char_32",
+	"char_8",
+	"double",
+	"float",
+	"float_16",
+	"float_32",
+	"float_64",
+	"half",
+	"int",
+	"int_16",
+	"int_32",
+	"int_64",
+	"int_8",
+	"long",
+	"short",
+	"ubyte",
+	"uchar",
+	"uchar_16",
+	"uchar_32",
+	"uchar_8",
+	"uint",
+	"uint_16",
+	"uint_32",
+	"uint_64",
+	"uint_8",
+	"ulong",
+	"ushort",
+	"void",
+	NULL
 };
 
 

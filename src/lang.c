@@ -15,26 +15,47 @@
 #include <ctype.h>
 
 
-static void checkKeyword(ztoken *token)
+static void checkKeyword(ztoken *token, const char *word)
 {
-	const ztoken *kw = keywords;
+	int i = 0;
 
-	while(kw->id[0])
+	// look for keywords
+	while(all_keywords[i])
 	{
-		if(strcmp(token->id, kw->id) == 0)
+		if(strcmp(word, all_keywords[i]) == 0)
 		{
-			token->type = kw->type;
+			token->type = i;
+			
 			return;
 		}
 
-		kw++;
+		i++;
 	}
 
+	i = 0;
+
+	// look for types
+	while(all_types[i])
+	{
+		if(strcmp(word, all_types[i]) == 0)
+		{
+			token->type = TOKEN_TYPE;
+			token->data.type = i;
+			
+			return;
+		}
+
+		i++;
+	}
+
+	// if no previous match, it's an identifier
 	token->type = TOKEN_IDENTIFIER;
+	token->data.str_val = malloc(strlen(word) + 1);
+	strcpy(token->data.str_val, word);
 }
 
 // sed "s|\(.\) \([_[:alpha:]]*\)|int tokenize_\2(const char *first, ztoken *token){return 1;}|" include/special_chars
-int tokenize_eq(const char *first, ztoken *token)
+static int tokenize_eq(const char *first, ztoken *token)
 {
 	int res = 1;
 
@@ -46,62 +67,221 @@ int tokenize_eq(const char *first, ztoken *token)
 	else
 		token->type = TOKEN_ASSIGN;
 
-	token->id[res] = '\0';
-
 	return 1;
 }
 
 
-int tokenize_plus(const char *first, ztoken *token)
+static int tokenize_plus(const char *first, ztoken *token)
 {
 	token->type = TOKEN_ADD;
 
 	return 1;
 }
 
-int tokenize_minus(const char *first, ztoken *token){return 1;}
 
-int tokenize_div(const char *first, ztoken *token)
+static int tokenize_minus(const char *first, ztoken *token)
+{
+	token->type = TOKEN_MINUS;
+
+	return 1;
+}
+
+
+static int tokenize_div(const char *first, ztoken *token)
 {
 	if(first[1] == '/')
 		return -1;
 	else
 		token->type = TOKEN_DIV;
-		token->id[0] = '\0';
+
 	return 1;
 }
 
-int tokenize_mult(const char *first, ztoken *token){return 1;}
-int tokenize_and(const char *first, ztoken *token){return 1;}
-int tokenize_or(const char *first, ztoken *token){return 1;}
-int tokenize_xor(const char *first, ztoken *token){return 1;}
-int tokenize_inf(const char *first, ztoken *token){return 1;}
-int tokenize_sup(const char *first, ztoken *token){return 1;}
-int tokenize_mod(const char *first, ztoken *token){return 1;}
-int tokenize_dot(const char *first, ztoken *token){return 1;}
-int tokenize_comma(const char *first, ztoken *token){return 1;}
 
-int tokenize_semicolon(const char *first, ztoken *token)
+static int tokenize_mult(const char *first, ztoken *token)
+{
+	token->type = TOKEN_MULT;
+
+	return 1;
+}
+
+
+static int tokenize_and(const char *first, ztoken *token)
+{
+	int res = 1;
+
+	if(first[1] == '&')
+	{
+		token->type = TOKEN_BIT_AND;
+		res++;
+	}
+	else
+		token->type = TOKEN_AND;
+
+	return 1;
+}
+
+
+static int tokenize_or(const char *first, ztoken *token)
+{
+	int res = 1;
+
+	if(first[1] == '|')
+	{
+		token->type = TOKEN_BIT_OR;
+		res++;
+	}
+	else
+		token->type = TOKEN_OR;
+
+	return res;
+}
+
+
+static int tokenize_xor(const char *first, ztoken *token)
+{
+	token->type = TOKEN_XOR;
+
+	return 1;
+}
+
+
+static int tokenize_inf(const char *first, ztoken *token)
+{
+	token->type = TOKEN_INF;
+
+	return 1;
+}
+
+static int tokenize_sup(const char *first, ztoken *token)
+{
+	token->type = TOKEN_SUP;
+
+	return 1;
+}
+
+
+static int tokenize_mod(const char *first, ztoken *token)
+{
+	token->type = TOKEN_MOD;
+
+	return 1;
+}
+
+
+static int tokenize_dot(const char *first, ztoken *token)
+{
+	token->type = TOKEN_DOT;
+
+	return 1;
+}
+
+
+static int tokenize_comma(const char *first, ztoken *token)
+{
+	token->type = TOKEN_COMMA;
+
+	return 1;
+}
+
+
+static int tokenize_semicolon(const char *first, ztoken *token)
 {
 	token->type = TOKEN_SEMICOLON;
-	token->id[0] = '\0';
 
 	return 1;
 }
 
-int tokenize_colon(const char *first, ztoken *token){return 1;}
-int tokenize_tilde(const char *first, ztoken *token){return 1;}
-int tokenize_not(const char *first, ztoken *token){return 1;}
-int tokenize_paren_open(const char *first, ztoken *token){return 1;}
-int tokenize_paren_close(const char *first, ztoken *token){return 1;}
-int tokenize_curl_open(const char *first, ztoken *token){return 1;}
-int tokenize_curl_close(const char *first, ztoken *token){return 1;}
-int tokenize_bracket_open(const char *first, ztoken *token){return 1;}
-int tokenize_bracket_close(const char *first, ztoken *token){return 1;}
-int tokenize_at(const char *first, ztoken *token){return 1;}
-int tokenize_dollar(const char *first, ztoken *token){return 1;}
 
-int tokenize_dbl_quote(const char *first, ztoken *token)
+static int tokenize_colon(const char *first, ztoken *token)
+{
+	token->type = TOKEN_COLON;
+
+	return 1;
+}
+
+
+static int tokenize_tilde(const char *first, ztoken *token)
+{
+	token->type = TOKEN_TILDE;
+
+	return 1;
+}
+
+
+static int tokenize_not(const char *first, ztoken *token)
+{
+	token->type = TOKEN_NOT;
+
+	return 1;
+}
+
+
+static int tokenize_paren_open(const char *first, ztoken *token)
+{
+	token->type = TOKEN_OPEN_PAREN;
+
+	return 1;
+}
+
+
+static int tokenize_paren_close(const char *first, ztoken *token)
+{
+	token->type = TOKEN_CLOSE_PAREN;
+
+	return 1;
+}
+
+
+static int tokenize_curl_open(const char *first, ztoken *token)
+{
+	token->type = TOKEN_OPEN_BLOCK;
+
+	return 1;
+}
+
+
+static int tokenize_curl_close(const char *first, ztoken *token)
+{
+	token->type = TOKEN_OPEN_BLOCK;
+
+	return 1;
+}
+
+
+static int tokenize_bracket_open(const char *first, ztoken *token)
+{
+	token->type = TOKEN_OPEN_BRACKET;
+
+	return 1;
+}
+
+
+static int tokenize_bracket_close(const char *first, ztoken *token)
+{
+	token->type = TOKEN_OPEN_BRACKET;
+
+	return 1;
+}
+
+
+static int tokenize_at(const char *first, ztoken *token)
+{
+	token->type = TOKEN_AT;
+
+	return 1;
+}
+
+
+static int tokenize_dollar(const char *first, ztoken *token)
+{
+	token->type = TOKEN_DOLLAR;
+
+	return 1;
+}
+
+
+static int tokenize_dbl_quote(const char *first, ztoken *token)
 {
 	size_t length;
 	const char *last = ++first;
@@ -125,17 +305,19 @@ int tokenize_dbl_quote(const char *first, ztoken *token)
 		return length;
 	}
 
-	snprintf(token->id, length, "%s", first);
+	token->data.str_val = malloc(length + 1);
+	snprintf(token->data.str_val, length, "%s", first);
 	token->type = TOKEN_STRING;
 
 	return length + 1;
 }
 
-int tokenize_quote(const char *first, ztoken *token)
+
+static int tokenize_quote(const char *first, ztoken *token)
 {
-	if(!isalnum(first[1]))
+	if(!isprint(first[1]))
 	{
-		fprintf(stderr, "Illegal character after ', only alnums are accepted: '%c'\n", first[1]);
+		fprintf(stderr, "Illegal character after ', only printable characters are accepted: '%c'\n", first[1]);
 
 		return 2;
 	}
@@ -148,32 +330,72 @@ int tokenize_quote(const char *first, ztoken *token)
 	}
 
 	// OK: single valid character betwin '
-	token->type = TOKEN_CONSTANT;
-	token->id[0] = first[0];
-	token->id[1] = first[1];
-	token->id[2] = first[2];
-	token->id[3] = '\0';
+	token->type = TOKEN_LITERAL_CHAR;
+	token->data.char_val = first[1];
 
 	return 3;
 }
 
-int tokenize_sharp(const char *first, ztoken *token){return 1;}
-int tokenize_escape(const char *first, ztoken *token){return 1;}
-int tokenize_back_quote(const char *first, ztoken *token){return 1;}
 
-int tokenize_literal(const char *first, ztoken *token)
+static int tokenize_sharp(const char *first, ztoken *token)
 {
-	size_t length;
+	token->type = TOKEN_SHARP;
+
+	return 1;
+}
+
+
+static int tokenize_escape(const char *first, ztoken *token)
+{
+	token->type = TOKEN_ESCAPE;
+
+	return 1;
+}
+
+
+static int tokenize_back_quote(const char *first, ztoken *token)
+{
+	token->type = TOKEN_BACK_QUOTE;
+
+	return 1;
+}
+
+
+static int tokenize_literal(const char *first, ztoken *token)
+{
 	const char *last = first;
 
 	while(isdigit(*last))
 		last++;
 
-	length = last - first;
-	snprintf(token->id, length + 1, "%s", first);
-	token->type = TOKEN_CONSTANT;
+	token->data.int_val = atoi(first);
+	token->type = TOKEN_LITERAL_INT;
 
-	return length;
+	return last - first;
+}
+
+
+static int tokenize_identifier(const char *first, ztoken *token)
+{
+	char word[IDENTIFIER_MAX + 1];
+	const char *last = first;
+	int res;
+
+	if(isdigit(*first))
+	{
+		res = tokenize_literal(first, token);
+	}
+	else if(*first == '_' || isalpha(*first))
+	{
+		while(*last == '_' || isalnum(*last))
+			last++;
+
+		snprintf(word, last - first + 1, "%s", first);
+		checkKeyword(token, word);
+		res = last - first;
+	}
+
+	return res;
 }
 
 
@@ -205,8 +427,7 @@ static int getNextToken(const char **str, ztoken *token)
 	// default value
 	// TODO: remove this when all possible characters will be taken care of in the switch...
 	token->type = TOKEN_UNKNOWN;
-	token->id[0] = *first;
-	token->id[1] = '\0';
+	token->data.char_val = *first;
 	
 	switch(*first)
 	{
@@ -241,19 +462,7 @@ static int getNextToken(const char **str, ztoken *token)
 		case '#': res = tokenize_sharp(first, token); break;
 		case '\\': res = tokenize_escape(first, token); break;
 		case '`': res = tokenize_back_quote(first, token); break;
-		case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-			res = tokenize_literal(first, token); break;
-		default:
-			if(*first == '_' || isalpha(*first))
-			{
-				while(*last == '_' || isalnum(*last))
-					last++;
-
-				snprintf(token->id, last - first + 1, "%s", first);
-				checkKeyword(token);
-				res = last - first;
-			}
-		break;
+		default: res = tokenize_identifier(first, token); break;
 	}
 	
 	// skip the rest of the line
@@ -261,7 +470,7 @@ static int getNextToken(const char **str, ztoken *token)
 		return 0;
 	// see next character...
 	else if(res == 0)
-		(*str++);
+		(*str)++;
 	// see next token
 	else
 		(*str) += res;
@@ -291,7 +500,8 @@ static void cleanLine(const char *line)
 
 static int parseLine(const char *line, int lineNumber)
 {
-	ztoken token = {"", TOKEN_UNKNOWN};
+	int error_cpt = 0;
+	ztoken token;
 
 	printf("l%3d: %s\n", lineNumber, line);
 
@@ -341,68 +551,67 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_TYPEOF:
 			case TOKEN_UNION:
 			case TOKEN_WHILE:
-				printf("keyword %s\n", token.id); break;
+				printf("keyword %s\n", all_keywords[token.type]); break;
 			// cat include/types | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
-			case TOKEN_BOOL:
-			case TOKEN_BYTE:
-			case TOKEN_CHAR:
-			case TOKEN_CHAR_16:
-			case TOKEN_CHAR_32:
-			case TOKEN_CHAR_8:
-			case TOKEN_DOUBLE:
-			case TOKEN_FLOAT:
-			case TOKEN_FLOAT_16:
-			case TOKEN_FLOAT_32:
-			case TOKEN_FLOAT_64:
-			case TOKEN_HALF:
-			case TOKEN_INT:
-			case TOKEN_INT_16:
-			case TOKEN_INT_32:
-			case TOKEN_INT_64:
-			case TOKEN_INT_8:
-			case TOKEN_LONG:
-			case TOKEN_SHORT:
-			case TOKEN_UBYTE:
-			case TOKEN_UCHAR:
-			case TOKEN_UCHAR_16:
-			case TOKEN_UCHAR_32:
-			case TOKEN_UCHAR_8:
-			case TOKEN_UINT:
-			case TOKEN_UINT_16:
-			case TOKEN_UINT_32:
-			case TOKEN_UINT_64:
-			case TOKEN_UINT_8:
-			case TOKEN_ULONG:
-			case TOKEN_USHORT:
-			case TOKEN_VOID:
-				printf("native type %s\n", token.id); break;
+			case TOKEN_TYPE:
+				printf("type %s\n", all_types[token.data.type]); break;
 			case TOKEN_COMPARE:
 			case TOKEN_DIV:
 			case TOKEN_ADD:
 			case TOKEN_ASSIGN:
-				printf("operator %s\n", token.id); break;
+			case TOKEN_MINUS:
+			case TOKEN_MULT:
+			case TOKEN_AND:
+			case TOKEN_BIT_AND:
+			case TOKEN_OR:
+			case TOKEN_BIT_OR:
+			case TOKEN_XOR:
+			case TOKEN_DOT:
+			case TOKEN_COMMA:
+			case TOKEN_COLON:
+			case TOKEN_INF:
+			case TOKEN_SUP:
+			case TOKEN_MOD:
+			case TOKEN_TILDE:
+			case TOKEN_NOT:
+			case TOKEN_OPEN_PAREN:
+			case TOKEN_CLOSE_PAREN:
+			case TOKEN_OPEN_BRACKET:
+			case TOKEN_CLOSE_BRACKET:
+			case TOKEN_AT:
+			case TOKEN_DOLLAR:
+			case TOKEN_SHARP:
+			case TOKEN_ESCAPE:
+			case TOKEN_BACK_QUOTE:
+				printf("operator %c\n", token.data.char_val); break;
+			case TOKEN_OPEN_BLOCK:
+				printf("Block opened\n"); break;
+			case TOKEN_CLOSE_BLOCK:
+				printf("Block closed\n"); break;
 			case TOKEN_IDENTIFIER:
-				printf("identifier '%s'\n", token.id); break;
+				printf("identifier '%s'\n", token.data.str_val); break;
 			case TOKEN_SEMICOLON:
 				printf("semicolon\n"); break;
 			case TOKEN_STRING:
-				printf("string '%s'\n", token.id); break;
-			case TOKEN_CONSTANT:
-				printf("constant '%s'\n", token.id); break;
+				printf("string '%s'\n", token.data.str_val); break;
+			case TOKEN_LITERAL_CHAR:
+				printf("constant %d\n", token.data.char_val); break;
+			case TOKEN_LITERAL_INT:
+				printf("constant %d\n", token.data.int_val); break;
 			case TOKEN_UNKNOWN: default:
-				printf("Found unknown token(%d) id: '%s'\n", token.type, token.id);
-				return -1;
+				printf("Found unknown token(%d): '%c'\n", token.type, token.data.char_val);
+				error_cpt++;
 		}
 	}
 
-	return 0;
+	return error_cpt;
 }
 
 
 int main(int argc, char **argv)
 {
 	char line[LINE_MAX + 1];
-	int status = EXIT_SUCCESS;
+	int error_cpt = 0;
 	int i;
 
 	// check args
@@ -434,23 +643,17 @@ int main(int argc, char **argv)
 		{
 			checkLine(line, lineNumber);
 			cleanLine(line);
-			
-			if(parseLine(line, lineNumber) != 0)
-			{
-				status = EXIT_FAILURE;
-				break;
-			}
-
+			error_cpt += parseLine(line, lineNumber);
 			lineNumber++;
 		}
 
-		if(status == EXIT_SUCCESS)
+		if(error_cpt == 0)
 			printf("##### Parsing of file '%s' completed #####\n\n", fileName);
 		else
-			printf("##### Parsing of file '%s' Failed #####\n\n", fileName);
+			printf("##### Parsing of file '%s' Failed: %d errors #####\n\n", fileName, error_cpt);
 
 		fclose(f);
 	}
 
-	return status;
+	return -error_cpt;
 }
