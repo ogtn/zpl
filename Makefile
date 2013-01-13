@@ -32,16 +32,16 @@ LDFLAGS=
 
 INC=include/
 
-all: bin/lang
+all: bin/zcomp
 
-bin/lang: src/lang.c include/lang.h
-	$(CC) $(CFLAGS) -o bin/lang src/lang.c -I$(INC) && echo "Compiling lang: \033[1;32mOK\033[0m"
+bin/zcomp: src/*.c include/*.h
+	$(CC) $(CFLAGS) -o bin/zcomp src/*.c -I$(INC) && echo "Compiling zcomp: \033[1;32mOK\033[0m"
 
-tests: bin/lang
-	@for f in tests/*.lang; \
+tests: bin/zcomp
+	@for f in tests/*.z; \
 	do \
 	echo -n "Testing `basename $$f`: "; \
-		if ./bin/lang $$f > /dev/null; \
+		if ./bin/zcomp $$f > /dev/null; \
 		then echo "\033[1;32mOK\033[0m"; \
 		else echo "\033[1;31mKO\033[0m"; \
 		fi; \

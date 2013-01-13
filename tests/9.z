@@ -1,0 +1,5 @@
+char my_digit = '5';
+char my_backslash = '\';
+char my_unfinished_char = 'z;
+char my_uppercase = 'G';
+char my_star = '*';
