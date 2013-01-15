@@ -69,42 +69,98 @@ static int tokenize_eq(const char *first, ztoken *token)
 	else
 		token->type = TOKEN_ASSIGN;
 
-	return 1;
+	return res;
 }
 
 
 static int tokenize_plus(const char *first, ztoken *token)
 {
-	token->type = TOKEN_ADD;
+	int res = 1;
 
-	return 1;
+	switch(first[1])
+	{
+		case '=':
+			token->type = TOKEN_ADD_ASSIGN;
+			res++;
+			break;
+
+		case '+':
+			token->type = TOKEN_INCR;
+			res++;
+			break;
+		
+		default:
+			token->type = TOKEN_ADD;
+	}
+
+	return res;
 }
 
 
 static int tokenize_minus(const char *first, ztoken *token)
 {
-	token->type = TOKEN_MINUS;
+	int res = 1;
 
-	return 1;
+	switch(first[1])
+	{
+		case '=':
+			token->type = TOKEN_SUB_ASSIGN;
+			res++;
+			break;
+
+		case '-':
+			token->type = TOKEN_DECR;
+			res++;
+			break;
+
+		default:
+			token->type = TOKEN_SUB;
+	}
+
+	return res;
 }
 
 
 static int tokenize_div(const char *first, ztoken *token)
 {
-	if(first[1] == '/')
-		return -1;
-	else
-		token->type = TOKEN_DIV;
+	int res = 1;
 
-	return 1;
+	switch(first[1])
+	{
+		case '/':
+			return -1;
+			break;
+
+		case '=':
+			token->type = TOKEN_DIV_ASSIGN;
+			res++;
+			break;
+
+		case '*':
+			fprintf(stderr, "Multi ligne comment are not supporte yet\n");
+			return -1;
+
+		default:
+			token->type = TOKEN_DIV;
+	}
+
+	return res;
 }
 
 
 static int tokenize_mult(const char *first, ztoken *token)
 {
-	token->type = TOKEN_MULT;
+	int res = 1;
 
-	return 1;
+	if(first[1] == '=')
+	{
+		token->type = TOKEN_MULT_ASSIGN;
+		res++;
+	}
+	else
+		token->type = TOKEN_MULT;
+
+	return res;
 }
 
 
@@ -112,15 +168,23 @@ static int tokenize_and(const char *first, ztoken *token)
 {
 	int res = 1;
 
-	if(first[1] == '&')
+	switch(first[1])
 	{
-		token->type = TOKEN_BIT_AND;
-		res++;
-	}
-	else
-		token->type = TOKEN_AND;
+		case '&':
+			token->type = TOKEN_AND;
+			res++;
+			break;
 
-	return 1;
+		case '=':
+			token->type = TOKEN_BIT_AND_ASSIGN;
+			res++;
+			break;
+
+		default:
+			token->type = TOKEN_BIT_AND;
+	}
+
+	return res;
 }
 
 
@@ -128,13 +192,22 @@ static int tokenize_or(const char *first, ztoken *token)
 {
 	int res = 1;
 
-	if(first[1] == '|')
+	switch(first[1])
 	{
-		token->type = TOKEN_BIT_OR;
-		res++;
+		case '|':
+			token->type = TOKEN_OR;
+			res++;
+			break;
+
+		case '=':
+			token->type = TOKEN_BIT_OR_ASSIGN;
+			res++;
+			break;
+
+		default:
+			token->type = TOKEN_BIT_OR;
 	}
-	else
-		token->type = TOKEN_OR;
+		
 
 	return res;
 }

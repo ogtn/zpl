@@ -95,16 +95,24 @@ static int parseLine(const char *line, int lineNumber)
 			// cat include/types | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
 			case TOKEN_TYPE:
 				printf("type %s\n", all_types[token.data.type]); break;
+			case TOKEN_ASSIGN:
 			case TOKEN_COMPARE:
 			case TOKEN_DIV:
+			case TOKEN_DIV_ASSIGN:
 			case TOKEN_ADD:
-			case TOKEN_ASSIGN:
-			case TOKEN_MINUS:
+			case TOKEN_ADD_ASSIGN:
+			case TOKEN_INCR:
+			case TOKEN_SUB:
+			case TOKEN_SUB_ASSIGN:
+			case TOKEN_DECR:
 			case TOKEN_MULT:
+			case TOKEN_MULT_ASSIGN:
 			case TOKEN_AND:
 			case TOKEN_BIT_AND:
+			case TOKEN_BIT_AND_ASSIGN:
 			case TOKEN_OR:
 			case TOKEN_BIT_OR:
+			case TOKEN_BIT_OR_ASSIGN:
 			case TOKEN_XOR:
 			case TOKEN_DOT:
 			case TOKEN_COMMA:
