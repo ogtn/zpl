@@ -114,14 +114,25 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_BIT_OR:
 			case TOKEN_BIT_OR_ASSIGN:
 			case TOKEN_XOR:
+			case TOKEN_XOR_ASSIGN:
 			case TOKEN_DOT:
+			case TOKEN_ELLIPSE:
 			case TOKEN_COMMA:
 			case TOKEN_COLON:
 			case TOKEN_INF:
+			case TOKEN_INF_EQ:
+			case TOKEN_LSHIFT:
+			case TOKEN_LSHIFT_ASSIGN:
 			case TOKEN_SUP:
+			case TOKEN_SUP_EQ:
+			case TOKEN_RSHIFT:
+			case TOKEN_RSHIFT_ASSIGN:
 			case TOKEN_MOD:
-			case TOKEN_TILDE:
+			case TOKEN_MOD_ASSIGN:
+			case TOKEN_BIT_NOT:
+			case TOKEN_BIT_NOT_ASSIGN:
 			case TOKEN_NOT:
+			case TOKEN_NOT_ASSIGN:
 			case TOKEN_OPEN_PAREN:
 			case TOKEN_CLOSE_PAREN:
 			case TOKEN_OPEN_BRACKET:

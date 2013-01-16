@@ -215,40 +215,110 @@ static int tokenize_or(const char *first, ztoken *token)
 
 static int tokenize_xor(const char *first, ztoken *token)
 {
-	token->type = TOKEN_XOR;
+	int res = 1;
 
-	return 1;
+	if(first[1] == '=')
+	{
+		token->type = TOKEN_XOR_ASSIGN;
+		res++;
+	}
+	else
+		token->type = TOKEN_XOR;
+
+	return res;
 }
 
 
 static int tokenize_inf(const char *first, ztoken *token)
 {
-	token->type = TOKEN_INF;
+	int res = 1;
 
-	return 1;
+	switch(first[1])
+	{
+		case '=':
+			token->type = TOKEN_INF_EQ;
+			res++;
+			break;
+
+		case '<':
+			if(first[2] == '=')
+			{
+				token->type = TOKEN_LSHIFT_ASSIGN;
+				res++;
+			}
+			else
+				token->type = TOKEN_LSHIFT;
+			
+			res++;
+			break;
+
+		default:
+			token->type = TOKEN_INF;
+	}
+
+	return res;
 }
 
 static int tokenize_sup(const char *first, ztoken *token)
 {
-	token->type = TOKEN_SUP;
+	int res = 1;
 
-	return 1;
+	switch(first[1])
+	{
+		case '=':
+			token->type = TOKEN_SUP_EQ;
+			res++;
+			break;
+
+		case '>':
+			if(first[2] == '=')
+			{
+				token->type = TOKEN_RSHIFT_ASSIGN;
+				res++;
+			}
+			else
+				token->type = TOKEN_RSHIFT;
+
+			res++;
+			break;
+
+		default:
+			token->type = TOKEN_SUP;
+	}
+
+	return res;
 }
 
 
 static int tokenize_mod(const char *first, ztoken *token)
 {
-	token->type = TOKEN_MOD;
+	int res = 1;
 
-	return 1;
+	if(first[1] == '=')
+	{
+		token->type = TOKEN_MOD_ASSIGN;
+		res++;
+	}
+	else
+		token->type = TOKEN_MOD;
+
+	return res;
 }
 
 
 static int tokenize_dot(const char *first, ztoken *token)
 {
-	token->type = TOKEN_DOT;
+	int res = 1;
 
-	return 1;
+	if(first[1] == '.' && first[2] == '.')
+	{
+		token->type = TOKEN_ELLIPSE;
+		res += 2;
+	}
+	else
+		token->type = TOKEN_DOT;
+
+	return res;
 }
 
 
@@ -278,17 +348,33 @@ static int tokenize_colon(const char *first, ztoken *token)
 
 static int tokenize_tilde(const char *first, ztoken *token)
 {
-	token->type = TOKEN_TILDE;
+	int res = 1;
 
-	return 1;
+	if(first[1] == '=')
+	{
+		token->type = TOKEN_BIT_NOT_ASSIGN;
+		res++;
+	}
+	else
+		token->type = TOKEN_BIT_NOT;
+
+	return res;
 }
 
 
 static int tokenize_not(const char *first, ztoken *token)
 {
-	token->type = TOKEN_NOT;
+	int res = 1;
 
-	return 1;
+	if(first[1] == '=')
+	{
+		token->type = TOKEN_NOT_ASSIGN;
+		res++;
+	}
+	else
+		token->type = TOKEN_NOT;
+
+	return res;
 }
 
 
