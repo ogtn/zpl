@@ -15,9 +15,6 @@
 #include "lang.h"
 
 
-#define IDENTIFIER_MAX		64
-
-
 typedef enum tokenType
 {
 	// keywords

@@ -12,7 +12,8 @@
 #define H_LANG
 
 
-#include <stdlib.h>
+#define IDENTIFIER_MAX		64
+#define LINE_MAX			1024
 
 
 typedef enum ztype

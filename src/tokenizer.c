@@ -10,10 +10,14 @@
 
 #include "tokenizer.h"
 #include "lang.h"
+#include "zcompiler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+
+extern zContext context;
 
 
 static void checkKeyword(ztoken *token, const char *word)
@@ -137,7 +141,7 @@ static int tokenize_div(const char *first, ztoken *token)
 			break;
 
 		case '*':
-			fprintf(stderr, "Multi ligne comment are not supporte yet\n");
+			fprintf(stderr, "Multi ligne comments are not supporte yet\n");
 			return -1;
 
 		default:

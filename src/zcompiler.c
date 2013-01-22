@@ -8,15 +8,14 @@
 //  http://sam.zoy.org/projects/COPYING.WTFPL for more details.
 
 
-#include "tokenizer.h"
+#include "zcompiler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
 
-#define LINE_MAX			1024
-
+static zContext context;
 
 
 static void checkLine(const char *line, int lineNumber)
@@ -133,20 +132,21 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_BIT_NOT_ASSIGN:
 			case TOKEN_NOT:
 			case TOKEN_NOT_ASSIGN:
-			case TOKEN_OPEN_PAREN:
-			case TOKEN_CLOSE_PAREN:
-			case TOKEN_OPEN_BRACKET:
-			case TOKEN_CLOSE_BRACKET:
 			case TOKEN_AT:
 			case TOKEN_DOLLAR:
 			case TOKEN_SHARP:
 			case TOKEN_ESCAPE:
 			case TOKEN_BACK_QUOTE:
 				printf("operator %c\n", token.data.char_val); break;
+			
 			case TOKEN_OPEN_BLOCK:
-				printf("Block opened\n"); break;
 			case TOKEN_CLOSE_BLOCK:
-				printf("Block closed\n"); break;
+			case TOKEN_OPEN_PAREN:
+			case TOKEN_CLOSE_PAREN:
+			case TOKEN_OPEN_BRACKET:
+			case TOKEN_CLOSE_BRACKET:
+				checkBracket(&context.bChecker, &token); break;
+
 			case TOKEN_IDENTIFIER:
 				printf("identifier '%s'\n", token.data.str_val); break;
 			case TOKEN_SEMICOLON:
@@ -186,6 +186,7 @@ int main(int argc, char **argv)
 		char *fileName = argv[i];
 		int lineNumber = 1;
 		FILE *f;
+		initBracketsChecker(&context.bChecker);
 
 		// opening source file
 		f = fopen(fileName, "r");
@@ -205,6 +206,11 @@ int main(int argc, char **argv)
 			error_cpt += parseLine(line, lineNumber);
 			lineNumber++;
 		}
+
+		checkBracket(&context.bChecker, NULL);
+		printf("gbl: %d brkts: %d prnt: %d crlbc: %d\n",
+			context.bChecker.globalCpt, context.bChecker.bracketCpt,
+			context.bChecker.parenCpt, context.bChecker.curlyCpt);
 
 		if(error_cpt == 0)
 			printf("##### Parsing of file '%s' completed #####\n\n", fileName);
