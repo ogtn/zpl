@@ -42,7 +42,7 @@ static int parseLine(const char *line, int lineNumber)
 	int error_cpt = 0;
 	ztoken token;
 
-	printf("l%3d: %s\n", lineNumber, line);
+	// printf("l%3d: >>>%s<<<\n", lineNumber, line);
 
 	while(getNextToken(&line, &token))
 	{
@@ -138,7 +138,7 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_ESCAPE:
 			case TOKEN_BACK_QUOTE:
 				printf("operator %c\n", token.data.char_val); break;
-			
+
 			case TOKEN_OPEN_BLOCK:
 			case TOKEN_CLOSE_BLOCK:
 			case TOKEN_OPEN_PAREN:
@@ -154,9 +154,9 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_STRING:
 				printf("string '%s'\n", token.data.str_val); break;
 			case TOKEN_LITERAL_CHAR:
-				printf("constant %d\n", token.data.char_val); break;
+				printf("char constant %d\n", token.data.char_val); break;
 			case TOKEN_LITERAL_INT:
-				printf("constant %d\n", token.data.int_val); break;
+				printf("int constant %d\n", token.data.int_val); break;
 			case TOKEN_UNKNOWN: default:
 				printf("Found unknown token(%d): '%c'\n", token.type, token.data.char_val);
 				error_cpt++;
@@ -170,13 +170,16 @@ static int parseLine(const char *line, int lineNumber)
 int main(int argc, char **argv)
 {
 	char line[LINE_MAX + 1];
+	unsigned int codeLen;
+	int lineNumber = 1;
 	int error_cpt = 0;
+	char *code;
 	int i;
 
 	// check args
 	if(argc <= 1)
 	{
-		fprintf(stderr, "No source file specified\nlang files\n");
+		fprintf(stderr, "No source file specified\nUsage: $ lang file1 [file2...files3...]\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -184,11 +187,10 @@ int main(int argc, char **argv)
 	for(i = 1; i < argc; i++)
 	{
 		char *fileName = argv[i];
-		int lineNumber = 1;
 		FILE *f;
-		initBracketsChecker(&context.bChecker);
 
-		// opening source file
+		printf("##### Parsing file '%s' #####\n", fileName);
+
 		f = fopen(fileName, "r");
 
 		if(f == NULL)
@@ -197,20 +199,37 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		printf("##### Parsing file '%s' #####\n", fileName);
+		fseek(f, 0, SEEK_END);
+		codeLen = ftell(f);
+		fseek(f, 0, SEEK_SET);
 
-		while(fgets(line, LINE_MAX + 1, f))
+		code = malloc(codeLen + 1);
+
+		if(code == NULL)
 		{
-			checkLine(line, lineNumber);
-			cleanLine(line);
-			error_cpt += parseLine(line, lineNumber);
-			lineNumber++;
+			fprintf(stderr, "Unable to alloc %do of memory for code", codeLen);
+			continue;
 		}
 
-		checkBracket(&context.bChecker, NULL);
-		printf("gbl: %d brkts: %d prnt: %d crlbc: %d\n",
-			context.bChecker.globalCpt, context.bChecker.bracketCpt,
-			context.bChecker.parenCpt, context.bChecker.curlyCpt);
+		fread(code, 1, codeLen, f);
+		code[codeLen] = '\0';
+
+		printf("##### CODE ####\n%s\n##### CODE ####\n", code);
+		error_cpt += parseLine(code, lineNumber);
+
+		// initBracketsChecker(&context.bChecker);
+
+		// while(fgets(line, LINE_MAX + 1, f))
+		// {
+			// checkLine(line, lineNumber);
+			// cleanLine(line);
+			// lineNumber++;
+		// }
+
+		// checkBracket(&context.bChecker, NULL);
+		// printf("gbl: %d brkts: %d prnt: %d crlbc: %d\n",
+		// 	context.bChecker.globalCpt, context.bChecker.bracketCpt,
+		// 	context.bChecker.parenCpt, context.bChecker.curlyCpt);
 
 		if(error_cpt == 0)
 			printf("##### Parsing of file '%s' completed #####\n\n", fileName);

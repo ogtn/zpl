@@ -9,8 +9,9 @@
 
 # I hate makefiles, this is why that one is so crappy
 
-CC=LC_ALL=en_US.UTF-8 colorgcc
+#CC=LC_ALL=en_US.UTF-8 colorgcc
 #CC=gcc
+CC=clang
 
 # hardcore mode, I save it for later :)
 # http://blogs.gnome.org/otte/2008/12/22/warning-options/
@@ -21,13 +22,14 @@ CFLAGS=-Wall -Wextra -fno-common -Wdeclaration-after-statement \
 -Wpointer-arith -Wlarger-than-65500 -Wmissing-declarations \
 -Wmissing-format-attribute -Wmissing-noreturn -Wmissing-prototypes \
 -Wnested-externs -Wold-style-definition -Wredundant-decls \
--Wsign-compare -Wstrict-aliasing=2 -Wstrict-prototypes -Wswitch-enum \
--Wundef -Wunreachable-code -Wunsafe-loop-optimizations \
+-Wsign-compare -Wstrict-aliasing=2 -Wstrict-prototypes -Wswitch \
+-Wundef -Wunreachable-code \
+#-Wunsafe-loop-optimizations \
 -Wwrite-strings #-ansi -pedantic
 
 # easy version
 #CFLAGS=-Wall -Wextra
-	
+
 LDFLAGS=
 
 INC=include/

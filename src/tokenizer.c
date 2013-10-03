@@ -30,7 +30,7 @@ static void checkKeyword(ztoken *token, const char *word)
 		if(strcmp(word, all_keywords[i]) == 0)
 		{
 			token->type = i;
-			
+
 			return;
 		}
 
@@ -46,7 +46,7 @@ static void checkKeyword(ztoken *token, const char *word)
 		{
 			token->type = TOKEN_TYPE;
 			token->data.type = i;
-			
+
 			return;
 		}
 
@@ -68,7 +68,7 @@ static int tokenize_eq(const char *first, ztoken *token)
 	if(first[1] == '=')
 	{
 		token->type = TOKEN_COMPARE;
-		res++; 
+		res++;
 	}
 	else
 		token->type = TOKEN_ASSIGN;
@@ -92,7 +92,7 @@ static int tokenize_plus(const char *first, ztoken *token)
 			token->type = TOKEN_INCR;
 			res++;
 			break;
-		
+
 		default:
 			token->type = TOKEN_ADD;
 	}
@@ -133,7 +133,6 @@ static int tokenize_div(const char *first, ztoken *token)
 	{
 		case '/':
 			return -1;
-			break;
 
 		case '=':
 			token->type = TOKEN_DIV_ASSIGN;
@@ -211,7 +210,7 @@ static int tokenize_or(const char *first, ztoken *token)
 		default:
 			token->type = TOKEN_BIT_OR;
 	}
-		
+
 
 	return res;
 }
@@ -252,7 +251,7 @@ static int tokenize_inf(const char *first, ztoken *token)
 			}
 			else
 				token->type = TOKEN_LSHIFT;
-			
+
 			res++;
 			break;
 
@@ -457,7 +456,7 @@ static int tokenize_dbl_quote(const char *first, ztoken *token)
 	if(!*last)
 	{
 		fprintf(stderr, "Ill formed string: encountered new line before matching \"\n");
-		
+
 		return -1;
 	}
 
@@ -466,7 +465,7 @@ static int tokenize_dbl_quote(const char *first, ztoken *token)
 	if(length >= IDENTIFIER_MAX)
 	{
 		fprintf(stderr, "Ill formed string: longer than %d characters\n", IDENTIFIER_MAX);
-		
+
 		return length;
 	}
 
@@ -490,7 +489,7 @@ static int tokenize_quote(const char *first, ztoken *token)
 	if(first[2] != '\'')
 	{
 		fprintf(stderr, "Missing matching '\n");
-		
+
 		return 2;
 	}
 
@@ -559,6 +558,11 @@ static int tokenize_identifier(const char *first, ztoken *token)
 		checkKeyword(token, word);
 		res = last - first;
 	}
+	else
+	{
+		printf("AAAAAAAAAAAAAAAAAAAAA\n");
+		res = 0;
+	}
 
 	return res;
 }
@@ -571,7 +575,7 @@ int getNextToken(const char **str, ztoken *token)
 	int res = 0;
 
 	// skip blank characters
-	while(isblank(*(*str)))
+	while(isblank(*(*str)) || *(*str) == '\n')
 		(*str)++;
 
 	first = last = *str;
@@ -583,17 +587,19 @@ int getNextToken(const char **str, ztoken *token)
 	// weird character
 	if(!isgraph(*first))
 	{
-		fprintf(stderr, "Error: non printable or non ascii character outside string: '%c' (0x%x\n", *first, *first);
+		fprintf(stderr, "Error: non printable or non ascii character inside string: (0x%hhX)\n", *first);
 		(*str)++;
 
 		return 1;
 	}
+	else
+		printf("[%c] => ", *first);
 
 	// default value
 	// TODO: remove this when all possible characters will be taken care of in the switch...
 	token->type = TOKEN_UNKNOWN;
 	token->data.char_val = *first;
-	
+
 	switch(*first)
 	{
 		// sed "s|\(.\) \([_[:alpha:]]*\)|case '\1': out = tokenize_\2(first, token); break;|" include/special_chars
@@ -627,9 +633,10 @@ int getNextToken(const char **str, ztoken *token)
 		case '#': res = tokenize_sharp(first, token); break;
 		case '\\': res = tokenize_escape(first, token); break;
 		case '`': res = tokenize_back_quote(first, token); break;
+		case '\n': res = 0;
 		default: res = tokenize_identifier(first, token); break;
 	}
-	
+
 	// skip the rest of the line
 	if(res < 0)
 		return 0;
