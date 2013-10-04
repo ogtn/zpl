@@ -15,7 +15,7 @@
 #include "tokenizer.h"
 
 
-#define BRACKETS_MAX		32
+#define BRACKETS_MAX		64
 
 
 typedef struct bracketsChecker
@@ -29,7 +29,7 @@ typedef struct bracketsChecker
 
 
 void initBracketsChecker(bracketsChecker *bChecker);
-void checkBracket(bracketsChecker *bChecker, ztoken *token);
+void checkBracket(bracketsChecker *bChecker, zToken *token);
 
 
-#endif // H_PARSER
+#endif // guard

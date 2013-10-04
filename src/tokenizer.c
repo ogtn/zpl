@@ -20,7 +20,7 @@
 extern zContext context;
 
 
-static void checkKeyword(ztoken *token, const char *word)
+static void checkKeyword(zToken *token, const char *word)
 {
 	int i = 0;
 
@@ -60,8 +60,8 @@ static void checkKeyword(ztoken *token, const char *word)
 }
 
 
-// sed "s|\(.\) \([_[:alpha:]]*\)|int tokenize_\2(const char *first, ztoken *token){return 1;}|" include/special_chars
-static int tokenize_eq(const char *first, ztoken *token)
+// sed "s|\(.\) \([_[:alpha:]]*\)|int tokenize_\2(const char *first, zToken *token){return 1;}|" include/special_chars
+static int tokenize_eq(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -77,7 +77,7 @@ static int tokenize_eq(const char *first, ztoken *token)
 }
 
 
-static int tokenize_plus(const char *first, ztoken *token)
+static int tokenize_plus(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -101,7 +101,7 @@ static int tokenize_plus(const char *first, ztoken *token)
 }
 
 
-static int tokenize_minus(const char *first, ztoken *token)
+static int tokenize_minus(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -125,14 +125,24 @@ static int tokenize_minus(const char *first, ztoken *token)
 }
 
 
-static int tokenize_div(const char *first, ztoken *token)
+static int tokenize_div(const char *first, zToken *token)
 {
 	int res = 1;
 
 	switch(first[1])
 	{
 		case '/':
-			return -1;
+			res++;
+
+			while(first[res] && first[res] != '\n')
+				res++;
+
+			token->type = TOKEN_COMMENT;
+			token->data.str_val = malloc(res -1);
+			memcpy(token->data.str_val, first + 2, res - 2);
+			token->data.str_val[res - 2] = '\0';
+
+			return res;
 
 		case '=':
 			token->type = TOKEN_DIV_ASSIGN;
@@ -140,7 +150,22 @@ static int tokenize_div(const char *first, ztoken *token)
 			break;
 
 		case '*':
-			fprintf(stderr, "Multi ligne comments are not supporte yet\n");
+			while(first[res])
+			{
+				if(first[res + 1] == '*' && first[res + 2] == '/')
+				{
+					token->type = TOKEN_COMMENT;
+					token->data.str_val = malloc(res);
+					memcpy(token->data.str_val, first + 2, res - 1);
+					token->data.str_val[res - 1] = '\0';
+
+					return res + 3;
+				}
+
+				res++;
+			}
+
+			fprintf(stderr, "Non closed C-style comment: end of file reached before '*/'\n");
 			return -1;
 
 		default:
@@ -151,7 +176,7 @@ static int tokenize_div(const char *first, ztoken *token)
 }
 
 
-static int tokenize_mult(const char *first, ztoken *token)
+static int tokenize_mult(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -167,7 +192,7 @@ static int tokenize_mult(const char *first, ztoken *token)
 }
 
 
-static int tokenize_and(const char *first, ztoken *token)
+static int tokenize_and(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -191,7 +216,7 @@ static int tokenize_and(const char *first, ztoken *token)
 }
 
 
-static int tokenize_or(const char *first, ztoken *token)
+static int tokenize_or(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -216,7 +241,7 @@ static int tokenize_or(const char *first, ztoken *token)
 }
 
 
-static int tokenize_xor(const char *first, ztoken *token)
+static int tokenize_xor(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -232,7 +257,7 @@ static int tokenize_xor(const char *first, ztoken *token)
 }
 
 
-static int tokenize_inf(const char *first, ztoken *token)
+static int tokenize_inf(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -262,7 +287,7 @@ static int tokenize_inf(const char *first, ztoken *token)
 	return res;
 }
 
-static int tokenize_sup(const char *first, ztoken *token)
+static int tokenize_sup(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -293,7 +318,7 @@ static int tokenize_sup(const char *first, ztoken *token)
 }
 
 
-static int tokenize_mod(const char *first, ztoken *token)
+static int tokenize_mod(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -309,7 +334,7 @@ static int tokenize_mod(const char *first, ztoken *token)
 }
 
 
-static int tokenize_dot(const char *first, ztoken *token)
+static int tokenize_dot(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -325,7 +350,7 @@ static int tokenize_dot(const char *first, ztoken *token)
 }
 
 
-static int tokenize_comma(const char *first, ztoken *token)
+static int tokenize_comma(const char *first, zToken *token)
 {
 	token->type = TOKEN_COMMA;
 
@@ -333,7 +358,7 @@ static int tokenize_comma(const char *first, ztoken *token)
 }
 
 
-static int tokenize_semicolon(const char *first, ztoken *token)
+static int tokenize_semicolon(const char *first, zToken *token)
 {
 	token->type = TOKEN_SEMICOLON;
 
@@ -341,7 +366,7 @@ static int tokenize_semicolon(const char *first, ztoken *token)
 }
 
 
-static int tokenize_colon(const char *first, ztoken *token)
+static int tokenize_colon(const char *first, zToken *token)
 {
 	token->type = TOKEN_COLON;
 
@@ -349,7 +374,7 @@ static int tokenize_colon(const char *first, ztoken *token)
 }
 
 
-static int tokenize_tilde(const char *first, ztoken *token)
+static int tokenize_tilde(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -365,7 +390,7 @@ static int tokenize_tilde(const char *first, ztoken *token)
 }
 
 
-static int tokenize_not(const char *first, ztoken *token)
+static int tokenize_not(const char *first, zToken *token)
 {
 	int res = 1;
 
@@ -381,7 +406,7 @@ static int tokenize_not(const char *first, ztoken *token)
 }
 
 
-static int tokenize_paren_open(const char *first, ztoken *token)
+static int tokenize_paren_open(const char *first, zToken *token)
 {
 	token->type = TOKEN_OPEN_PAREN;
 
@@ -389,7 +414,7 @@ static int tokenize_paren_open(const char *first, ztoken *token)
 }
 
 
-static int tokenize_paren_close(const char *first, ztoken *token)
+static int tokenize_paren_close(const char *first, zToken *token)
 {
 	token->type = TOKEN_CLOSE_PAREN;
 
@@ -397,7 +422,7 @@ static int tokenize_paren_close(const char *first, ztoken *token)
 }
 
 
-static int tokenize_curl_open(const char *first, ztoken *token)
+static int tokenize_curl_open(const char *first, zToken *token)
 {
 	token->type = TOKEN_OPEN_BLOCK;
 
@@ -405,7 +430,7 @@ static int tokenize_curl_open(const char *first, ztoken *token)
 }
 
 
-static int tokenize_curl_close(const char *first, ztoken *token)
+static int tokenize_curl_close(const char *first, zToken *token)
 {
 	token->type = TOKEN_OPEN_BLOCK;
 
@@ -413,7 +438,7 @@ static int tokenize_curl_close(const char *first, ztoken *token)
 }
 
 
-static int tokenize_bracket_open(const char *first, ztoken *token)
+static int tokenize_bracket_open(const char *first, zToken *token)
 {
 	token->type = TOKEN_OPEN_BRACKET;
 
@@ -421,7 +446,7 @@ static int tokenize_bracket_open(const char *first, ztoken *token)
 }
 
 
-static int tokenize_bracket_close(const char *first, ztoken *token)
+static int tokenize_bracket_close(const char *first, zToken *token)
 {
 	token->type = TOKEN_OPEN_BRACKET;
 
@@ -429,7 +454,7 @@ static int tokenize_bracket_close(const char *first, ztoken *token)
 }
 
 
-static int tokenize_at(const char *first, ztoken *token)
+static int tokenize_at(const char *first, zToken *token)
 {
 	token->type = TOKEN_AT;
 
@@ -437,7 +462,7 @@ static int tokenize_at(const char *first, ztoken *token)
 }
 
 
-static int tokenize_dollar(const char *first, ztoken *token)
+static int tokenize_dollar(const char *first, zToken *token)
 {
 	token->type = TOKEN_DOLLAR;
 
@@ -445,7 +470,7 @@ static int tokenize_dollar(const char *first, ztoken *token)
 }
 
 
-static int tokenize_dbl_quote(const char *first, ztoken *token)
+static int tokenize_dbl_quote(const char *first, zToken *token)
 {
 	size_t length;
 	const char *last = ++first;
@@ -477,7 +502,7 @@ static int tokenize_dbl_quote(const char *first, ztoken *token)
 }
 
 
-static int tokenize_quote(const char *first, ztoken *token)
+static int tokenize_quote(const char *first, zToken *token)
 {
 	if(!isprint(first[1]))
 	{
@@ -501,7 +526,7 @@ static int tokenize_quote(const char *first, ztoken *token)
 }
 
 
-static int tokenize_sharp(const char *first, ztoken *token)
+static int tokenize_sharp(const char *first, zToken *token)
 {
 	token->type = TOKEN_SHARP;
 
@@ -509,7 +534,7 @@ static int tokenize_sharp(const char *first, ztoken *token)
 }
 
 
-static int tokenize_escape(const char *first, ztoken *token)
+static int tokenize_escape(const char *first, zToken *token)
 {
 	token->type = TOKEN_ESCAPE;
 
@@ -517,7 +542,7 @@ static int tokenize_escape(const char *first, ztoken *token)
 }
 
 
-static int tokenize_back_quote(const char *first, ztoken *token)
+static int tokenize_back_quote(const char *first, zToken *token)
 {
 	token->type = TOKEN_BACK_QUOTE;
 
@@ -525,7 +550,7 @@ static int tokenize_back_quote(const char *first, ztoken *token)
 }
 
 
-static int tokenize_literal(const char *first, ztoken *token)
+static int tokenize_literal(const char *first, zToken *token)
 {
 	const char *last = first;
 
@@ -539,7 +564,7 @@ static int tokenize_literal(const char *first, ztoken *token)
 }
 
 
-static int tokenize_identifier(const char *first, ztoken *token)
+static int tokenize_identifier(const char *first, zToken *token)
 {
 	char word[IDENTIFIER_MAX + 1];
 	const char *last = first;
@@ -568,6 +593,101 @@ static int tokenize_identifier(const char *first, ztoken *token)
 }
 
 
+int tokenize(const char *code, zToken **tokens, int *nbTokens)
+{
+	const char *codeStart = code;
+	int maxTokens = 1024;
+
+	*nbTokens = 0;
+	*tokens = malloc(sizeof(zToken) * maxTokens);
+
+	while(*code)
+	{
+		zToken *token;
+		int len;
+
+		// skip blank characters and endlines
+		while(*code && (isblank(*code) || *code == '\n'))
+			code++;
+
+		// end of file
+		if(!*code)
+			break;
+
+		// weird character
+		if(!isgraph(*code))
+		{
+			fprintf(stderr, "Error: non printable or non ascii character found @ %d: (0x%hhX)\n", code - codeStart, *code);
+			code++;
+
+			continue;
+		}
+
+		if(*nbTokens >= maxTokens)
+		{
+			fprintf(stderr, "Error: max token reached\n");
+			return -1;
+		}
+
+		token = &(*tokens)[*nbTokens];
+		(*nbTokens)++;
+
+		token->type = TOKEN_UNKNOWN;
+		token->data.char_val = *code;
+		token->loc.pos = code - codeStart;
+
+		switch(*code)
+		{
+			// sed "s|\(.\) \([_[:alpha:]]*\)|case '\1': len = tokenize_\2(code, token); break;|" include/special_chars
+			case '|': len = tokenize_or(code, token); break;
+			case '=': len = tokenize_eq(code, token); break;
+			case '@': len = tokenize_at(code, token); break;
+			case '&': len = tokenize_and(code, token); break;
+			case '^': len = tokenize_xor(code, token); break;
+			case '<': len = tokenize_inf(code, token); break;
+			case '>': len = tokenize_sup(code, token); break;
+			case '%': len = tokenize_mod(code, token); break;
+			case '.': len = tokenize_dot(code, token); break;
+			case '/': len = tokenize_div(code, token); break;
+			case '!': len = tokenize_not(code, token); break;
+			case '*': len = tokenize_mult(code, token); break;
+			case '+': len = tokenize_plus(code, token); break;
+			case '#': len = tokenize_sharp(code, token); break;
+			case '-': len = tokenize_minus(code, token); break;
+			case ',': len = tokenize_comma(code, token); break;
+			case ':': len = tokenize_colon(code, token); break;
+			case '~': len = tokenize_tilde(code, token); break;
+			case '$': len = tokenize_dollar(code, token); break;
+			case '"': len = tokenize_dbl_quote(code, token); break;
+			case '{': len = tokenize_curl_open(code, token); break;
+			case ';': len = tokenize_semicolon(code, token); break;
+			case '`': len = tokenize_back_quote(code, token); break;
+			case '}': len = tokenize_curl_close(code, token); break;
+			case '(': len = tokenize_paren_open(code, token); break;
+			case ')': len = tokenize_paren_close(code, token); break;
+			case '[': len = tokenize_bracket_open(code, token); break;
+			case ']': len = tokenize_bracket_close(code, token); break;
+			case '\'': len = tokenize_quote(code, token); break;
+			case '\\': len = tokenize_escape(code, token); break;
+			default: len = tokenize_identifier(code, token); break;
+		}
+
+		if(len > 0)
+		{
+			code += len;
+			token->loc.len = len;
+		}
+		else
+		{
+			fprintf(stderr, "Error: shit happened\n");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+/*
 int getNextToken(const char **str, ztoken *token)
 {
 	const char *first;
@@ -592,8 +712,8 @@ int getNextToken(const char **str, ztoken *token)
 
 		return 1;
 	}
-	else
-		printf("[%c] => ", *first);
+	// else
+	// 	printf("[%c] => ", *first);
 
 	// default value
 	// TODO: remove this when all possible characters will be taken care of in the switch...
@@ -633,9 +753,11 @@ int getNextToken(const char **str, ztoken *token)
 		case '#': res = tokenize_sharp(first, token); break;
 		case '\\': res = tokenize_escape(first, token); break;
 		case '`': res = tokenize_back_quote(first, token); break;
-		case '\n': res = 0;
 		default: res = tokenize_identifier(first, token); break;
 	}
+
+	// token->position.line = line;
+	// token->position.column = column;
 
 	// skip the rest of the line
 	if(res < 0)
@@ -649,3 +771,4 @@ int getNextToken(const char **str, ztoken *token)
 
 	return 1;
 }
+*/

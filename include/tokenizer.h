@@ -125,18 +125,17 @@ typedef enum tokenType
 } tokenType;
 
 
-
-typedef struct position
+typedef struct location
 {
-	unsigned short line;
-	unsigned short column;
-} position;
+	unsigned pos: 22;
+	unsigned len: 10;
+} location;
 
 
-typedef struct ztoken
+typedef struct zToken
 {
 	tokenType type;
-	position pos;
+	location loc;
 
 	union
 	{
@@ -144,12 +143,13 @@ typedef struct ztoken
 		int int_val;
 		float float_val;
 		char *str_val;
-		ztype type;
+		zType type;
 	} data;
-} ztoken;
+} zToken;
 
 
-int getNextToken(const char **str, ztoken *token);
+int tokenize(const char *code, zToken **tokens, int *nbTokens);
+int getNextToken(const char **str, zToken *token);
 
 
 #endif // H_TOKENIZER

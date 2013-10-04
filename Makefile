@@ -37,7 +37,7 @@ INC=include/
 all: bin/zcomp
 
 bin/zcomp: src/*.c include/*.h
-	$(CC) $(CFLAGS) -o bin/zcomp src/*.c -I$(INC) && echo "Compiling zcomp: \033[1;32mOK\033[0m"
+	@$(CC) $(CFLAGS) -o bin/zcomp src/*.c -I$(INC) && echo "Compiling zcomp: \033[1;32mOK\033[0m"
 
 tests: bin/zcomp
 	@for f in tests/*.z; \

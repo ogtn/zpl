@@ -21,7 +21,7 @@ void initBracketsChecker(bracketsChecker *bChecker)
 }
 
 
-void checkBracket(bracketsChecker *bChecker, ztoken *token)
+void checkBracket(bracketsChecker *bChecker, zToken *token)
 {
 	char last = 0;
 
@@ -45,7 +45,7 @@ void checkBracket(bracketsChecker *bChecker, ztoken *token)
 		return;
 	}
 
-	printf("___ %c ___\n", token->data.char_val);
+	// printf("___ %c ___\n", token->data.char_val);
 
 	switch(token->type)
 	{
@@ -90,7 +90,7 @@ void checkBracket(bracketsChecker *bChecker, ztoken *token)
 		fprintf(stderr, "checkBracket() failed: too much nested brackets\n");
 	else
 		bChecker->stack[bChecker->globalCpt++] = token->data.char_val;
-	
+
 	return;
 
 	decr:

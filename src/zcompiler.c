@@ -9,13 +9,11 @@
 
 
 #include "zcompiler.h"
+#include "ast.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-
-static zContext context;
 
 
 static void checkLine(const char *line, int lineNumber)
@@ -37,16 +35,22 @@ static void cleanLine(const char *line)
 }
 
 
-static int parseLine(const char *line, int lineNumber)
+static int parseFile(const char *code)
 {
 	int error_cpt = 0;
-	ztoken token;
+	zContext context;
+	zToken *tokens;
+	int nbTokens;
+	zAST *ast;
+	int i;
 
-	// printf("l%3d: >>>%s<<<\n", lineNumber, line);
+	int res = tokenize(code, &tokens, &nbTokens);
+	printf("tokenize() => %s | nbTokens: %d\n", res ? "KO" : "OK", nbTokens);
+	initBracketsChecker(&context.bChecker);
 
-	while(getNextToken(&line, &token))
+	for(i = 0; i < nbTokens; i++)
 	{
-		switch(token.type)
+		switch(tokens[i].type)
 		{
 			// cat include/keywords | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
 			case TOKEN_ALIAS:
@@ -90,10 +94,12 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_TYPEOF:
 			case TOKEN_UNION:
 			case TOKEN_WHILE:
-				printf("keyword %s\n", all_keywords[token.type]); break;
+				printf("keyword %s\n", all_keywords[tokens[i].type]); break;
+
 			// cat include/types | sort | sed 's|^[_[:alnum:]]*$|case TOKEN_\U&:|'
 			case TOKEN_TYPE:
-				printf("type %s\n", all_types[token.data.type]); break;
+				printf("type %s\n", all_types[tokens[i].data.type]); break;
+
 			case TOKEN_ASSIGN:
 			case TOKEN_COMPARE:
 			case TOKEN_DIV:
@@ -137,7 +143,7 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_SHARP:
 			case TOKEN_ESCAPE:
 			case TOKEN_BACK_QUOTE:
-				printf("operator %c\n", token.data.char_val); break;
+				printf("operator %c\n", tokens[i].data.char_val); break;
 
 			case TOKEN_OPEN_BLOCK:
 			case TOKEN_CLOSE_BLOCK:
@@ -145,23 +151,44 @@ static int parseLine(const char *line, int lineNumber)
 			case TOKEN_CLOSE_PAREN:
 			case TOKEN_OPEN_BRACKET:
 			case TOKEN_CLOSE_BRACKET:
-				checkBracket(&context.bChecker, &token); break;
+				checkBracket(&context.bChecker, &tokens[i]); break;
+
+			case TOKEN_COMMENT:
+				printf("Comment\n/*%s*/\n", tokens[i].data.str_val); break;
 
 			case TOKEN_IDENTIFIER:
-				printf("identifier '%s'\n", token.data.str_val); break;
+				printf("identifier '%s'\n", tokens[i].data.str_val); break;
+
 			case TOKEN_SEMICOLON:
 				printf("semicolon\n"); break;
+
 			case TOKEN_STRING:
-				printf("string '%s'\n", token.data.str_val); break;
+				printf("string '%s'\n", tokens[i].data.str_val); break;
+
 			case TOKEN_LITERAL_CHAR:
-				printf("char constant %d\n", token.data.char_val); break;
+				printf("char constant %d\n", tokens[i].data.char_val); break;
+
 			case TOKEN_LITERAL_INT:
-				printf("int constant %d\n", token.data.int_val); break;
+				printf("int constant %d\n", tokens[i].data.int_val); break;
+
 			case TOKEN_UNKNOWN: default:
-				printf("Found unknown token(%d): '%c'\n", token.type, token.data.char_val);
+				printf("Found unknown token(%d): '%c'\n", tokens[i].type, tokens[i].data.char_val);
 				error_cpt++;
 		}
+
+		printf("token pos [%d:%d]\n", tokens[i].loc.pos, tokens[i].loc.pos + tokens[i].loc.len);
 	}
+
+	checkBracket(&context.bChecker, NULL);
+	printf("gbl: %d brkts: %d prnt: %d crlbrkts: %d\n",
+		context.bChecker.globalCpt, context.bChecker.bracketCpt,
+		context.bChecker.parenCpt, context.bChecker.curlyCpt);
+
+	ast = create_AST(tokens, &tokens[nbTokens]);
+	// print_AST(ast);
+
+	// free_AST(ast);
+	free(tokens);
 
 	return error_cpt;
 }
@@ -215,21 +242,7 @@ int main(int argc, char **argv)
 		code[codeLen] = '\0';
 
 		printf("##### CODE ####\n%s\n##### CODE ####\n", code);
-		error_cpt += parseLine(code, lineNumber);
-
-		// initBracketsChecker(&context.bChecker);
-
-		// while(fgets(line, LINE_MAX + 1, f))
-		// {
-			// checkLine(line, lineNumber);
-			// cleanLine(line);
-			// lineNumber++;
-		// }
-
-		// checkBracket(&context.bChecker, NULL);
-		// printf("gbl: %d brkts: %d prnt: %d crlbc: %d\n",
-		// 	context.bChecker.globalCpt, context.bChecker.bracketCpt,
-		// 	context.bChecker.parenCpt, context.bChecker.curlyCpt);
+		error_cpt += parseFile(code);
 
 		if(error_cpt == 0)
 			printf("##### Parsing of file '%s' completed #####\n\n", fileName);

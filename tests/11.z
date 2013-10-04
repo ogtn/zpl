@@ -1,0 +1,10 @@
+/**/
+int i = 42;/* This is a comment at the end of a line */
+int j;/*This is a comment
+that runs over
+three lines */int k;
+
+
+/* Too bad, that one
+is never
+closed!

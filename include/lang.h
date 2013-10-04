@@ -16,7 +16,7 @@
 #define LINE_MAX			1024
 
 
-typedef enum ztype
+typedef enum zType
 {
 	// cat include/types | sort | sed 's|^[_[:alnum:]]*$|TYPE_\U&,|'
 	TYPE_BOOL,
@@ -51,7 +51,7 @@ typedef enum ztype
 	TYPE_ULONG,
 	TYPE_USHORT,
 	TYPE_VOID
-} ztype;
+} zType;
 
 
 extern const char *all_keywords[];
